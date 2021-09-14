@@ -1,0 +1,14 @@
+{
+	"bot_lib": "Vk",
+	"enable": false,
+	"vk":{
+		"token": "your_token",
+		"tokens": ["your_page_token1", "your_page_token2", "your_page_token3"],
+		"names": ["бот","тоб"],
+		"log_chat": "2000001863",
+		"error_chat": "2000001835",
+		"captcha_key": "your_rucapcha_key",
+		"proxy": ""
+	},
+	"plugins_path": "plugins"
+}
