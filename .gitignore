@@ -127,6 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-.idea/
+
+.idea/*
+modules.xml
 .test.py
 .test_plugin_3.py
