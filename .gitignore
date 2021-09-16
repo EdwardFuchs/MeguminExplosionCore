@@ -117,16 +117,7 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
-# mkdocs documentation
-/site
-
 # mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# data
-data/scientific_articles/
-.html
-.test.py
-.test_plugin_3.py
