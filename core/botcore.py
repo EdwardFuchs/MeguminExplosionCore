@@ -2,9 +2,9 @@ import sys
 
 
 class Bot:
-    def __init__(self, name, setting=None, debug=False):
+    def __init__(self, name, config=None):
         self.cmds = {}
-        self.debug = debug
+        self.config = config
 
     def _add_cmd(self, path):
         path_to_import = self.__reformat_path(path)
@@ -17,13 +17,9 @@ class Bot:
                 import_cmd = __import__(path_to_import, fromlist=["cmd"])
             cmd = import_cmd.cmd
             msg = self.__reload_cmds(cmd)
-            if self.debug:
-                print(msg)
             return msg
         except Exception as e:
             msg = f"Не получилось импортиовать файл {path} с ошибкой {e}"
-            if self.debug:
-                print(msg)
             return msg
 
     def _del_cmd(self, path):
@@ -31,13 +27,9 @@ class Bot:
         if path_to_import in sys.modules:
             sys.modules.pop(path_to_import)
             msg = f"Модуль {path} удален"
-            if self.debug:
-                print(msg)
             return msg
         else:
             msg = f"Модуль {path} не найден"
-            if self.debug:
-                print(msg)
             return msg
 
     @staticmethod
@@ -61,5 +53,6 @@ class Bot:
                          deleted_cmd=', '.join(deleted_cmd))
         return res
 
-    def run(self):
+    @staticmethod
+    def run():
         print("Оболочка не инициализирована")

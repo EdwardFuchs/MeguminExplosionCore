@@ -17,8 +17,7 @@ def get_bots():
             continue
         mybot = {}
         try:
-            exec(fr"mybot = {bot['bot_lib']}('{bot_name}', {bot[bot['bot_lib']]})", globals(),
-                 mybot)  # Возможно есть более лучший способ
+            exec(fr"mybot = {bot['bot_lib']}('{bot_name}', {bot[bot['bot_lib']]})", globals(), mybot)  # Возможно есть более лучший способ
             bots.append(Thread(target=mybot["mybot"].run, daemon=False, name=bot_name))
         except Exception as e:
             print(f"ERROR [{bot_name}]: {e}")

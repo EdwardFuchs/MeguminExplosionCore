@@ -19,14 +19,15 @@ class Vk(Bot):
                                "disable_mentions": 1,  # флаг отключить уведомление об упоминании в сообщении, может принимать значения 1 или 0
                                "dont_parse_links": 1,  # флаг отключить регестрирование ссылок об упоминании в сообщении, может принимать значения 1 или 0
                                }
-        self.group_id = self.groups.getById()["response"][0]["id"]
-        if config["proxy"]:  # Если есть прокси # TODO реализовать для api
+        if config["proxy"]:
             self.proxy = {
                 "http": config["proxy"],
                 "https": config["proxy"],
             }
         else:
             self.proxy = None
+        self.group_id = self.groups.getById()["response"][0]["id"]
+
         # self.disable_mentions = 1  # флаг: отключить уведомление об упоминании в сообщении, может принимать значения 1 или 0
         # self.dont_parse_links = 1  # флаг: не создавать сниппет ссылки из сообщения, может принимать значения 1 или 0
         self.key = None  # секретный ключ сессии
@@ -36,25 +37,27 @@ class Vk(Bot):
         # print(f"Инициализация бота {name} закончена")
 
     def __getattr__(self, method_name):
-        return VkAPI(method_name, self.default_params)
+        return VkAPI(method_name=method_name, default_params=self.default_params, proxy=self.proxy)
 
     def method(self, method, **params):  # поддержка старых версий ядер
-        updated_params = self.default_params.copy()  # копирлвание стандартных параметров
-        updated_params |= params  # python 3.9 (old is "updated_params.update(params)")
-        request_url = f"{api_url}/{method}"
-        # if "type" in params and params["type"] == "get":
-        #     result = get(request_url, params=params, proxies=self.proxy, timeout=30)
-        # else:
-        result = post(request_url, data=params, proxies=self.proxy, timeout=30)
-        try:
-            result = result.json()
-        except JSONDecodeError:
-            # TODO сделать отправку в ошибочный чат
-            pass
-        if "error" in result:
-            # TODO на рассмотрении
-            pass
-        return result
+        # TODO сделать через класс VkAPI
+        pass
+        # updated_params = self.default_params.copy()  # копирлвание стандартных параметров
+        # updated_params |= params  # python 3.9 (old is "updated_params.update(params)")
+        # request_url = f"{api_url}/{method}"
+        # # if "type" in params and params["type"] == "get":
+        # #     result = get(request_url, params=params, proxies=self.proxy, timeout=30)
+        # # else:
+        # result = post(request_url, data=params, proxies=self.proxy, timeout=30)
+        # try:
+        #     result = result.json()
+        # except JSONDecodeError:
+        #     # TODO сделать отправку в ошибочный чат
+        #     pass
+        # if "error" in result:
+        #     # TODO на рассмотрении
+        #     pass
+        # return result
 
     def send(self, text, **params):
         print(self.peer_id)
@@ -146,12 +149,13 @@ class Vk(Bot):
 
 
 class VkAPI:
-    def __init__(self, method_name, default_params):
+    def __init__(self, method_name, default_params, proxy=None):
         self.method_name = method_name
         self.default_params = default_params
+        self.proxy = proxy
 
     def __getattr__(self, method_name):
-        return VkAPI(f"{self.method_name}.{method_name}", self.default_params)
+        return VkAPI(f"{self.method_name}.{method_name}", self.default_params, self.proxy)
 
     def __call__(self, **params):
         return self.method(**params)
@@ -159,7 +163,7 @@ class VkAPI:
     def method(self, **params):
         updated_params = self.default_params.copy()
         updated_params |= params  # python 3.9 (old is "updated_params.update(params)")
-        result = post(api_url + self.method_name, data=updated_params)
+        result = post(api_url + self.method_name, data=updated_params, proxies=self.proxy)
         try:
             result = result.json()
         except JSONDecodeError:
