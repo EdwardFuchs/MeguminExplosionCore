@@ -10,5 +10,6 @@
 		"captcha_key": "your_rucapcha_key",
 		"proxy": ""
 	},
-	"plugins_path": "plugins"
+	"plugins_path": "plugins",
+	"time_to_check_update": 0.5
 }

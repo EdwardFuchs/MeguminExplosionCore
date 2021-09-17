@@ -1,13 +1,15 @@
 def say(event):
     print("Была вызвана команда 'cmd'")
 
+
 def say2(event):
     print("Был вызван эвент 'vk_message_new'")
 
 
-cmd = {"cmd": say}
+cmd = {say: "cmd"}
 
-event = {["vk_message_new"]: say}
+
+event = {say: ["vk_message_new"]}
 
 
 

@@ -4,6 +4,7 @@ from random import randint
 from json.decoder import JSONDecodeError
 from sys import platform
 from os import getpid
+from threading import Thread
 
 # print("import")
 api_url = "https://api.vk.com/method/"  # url для доступа к вк апи
@@ -12,7 +13,7 @@ api_url = "https://api.vk.com/method/"  # url для доступа к вк ап
 class Vk(Bot):
     def __init__(self, name, config):
         # print(f"Инициализация бота {name}")
-        super().__init__(name, config)
+        super().__init__()
         self.name = name
         self.default_params = {"v": "5.131",  # Версия апи вк
                                "access_token": config["token"],  # токен группы
@@ -73,6 +74,10 @@ class Vk(Bot):
         self.server = data['server']
         self.ts = data['ts']
         self.key = data['key']
+
+    def start(self):
+        th = Thread(target=self.run, daemon=False, name=self.name)
+        th.start()
 
     # TODO сделать для пользователя https://vk.com/dev/using_longpoll
     def run(self):
@@ -161,6 +166,8 @@ class VkAPI:
         return self.method(**params)
 
     def method(self, **params):
+        if self.method_name.lower() == "auth.refresh":
+            raise NameError(f"{self.method_name} заблокирован в целях безопастности")
         updated_params = self.default_params.copy()
         updated_params |= params  # python 3.9 (old is "updated_params.update(params)")
         result = post(api_url + self.method_name, data=updated_params, proxies=self.proxy)

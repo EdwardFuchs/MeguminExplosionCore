@@ -8,7 +8,7 @@ from watchdog.observers import Observer
 
 
 def get_bots():
-    bots = []
+    bots = {}
     for bot in listdir("bots"):
         bot_name = ".".join(bot.split(".")[:-1])
         with open(f"./bots/{bot}") as file:
@@ -17,18 +17,24 @@ def get_bots():
             continue
         mybot = {}
         try:
-            exec(fr"mybot = {bot['bot_lib']}('{bot_name}', {bot[bot['bot_lib']]})", globals(), mybot)  # Возможно есть более лучший способ
-            bots.append(Thread(target=mybot["mybot"].run, daemon=False, name=bot_name))
+            exec(fr"mybot = {bot['bot_lib']}('{bot_name}', {bot[bot['bot_lib']]})", globals(), mybot)  # TODO Поискать более лучший способ
+            bots[bot_name] = {}
+            bots[bot_name]["bot"] = mybot["mybot"]  # Thread(target=mybot["mybot"].run, daemon=False, name=bot_name)
+            bots[bot_name]["plugins_path"] = bot["plugins_path"]
+            bots[bot_name]["time_to_check_update"] = bot["time_to_check_update"]
         except Exception as e:
             print(f"ERROR [{bot_name}]: {e}")
     return bots
 
 
 def run_bots(bots):
-    for bot in bots:
-        updater = UpdaterHandler(bot, time_to_check_update=0.5)
+    for bot_name in bots:
+        bot = bots[bot_name]["bot"]
+        plugins_path = bots[bot_name]["plugins_path"]
+        time_to_check_update = bots[bot_name]["time_to_check_update"]
+        updater = UpdaterHandler(bot, time_to_check_update=time_to_check_update, plugins_path=plugins_path)
         observer = Observer()
-        observer.schedule(updater, path='plugins', recursive=False)
+        observer.schedule(updater, path=plugins_path, recursive=False)
         observer.start()
         bot.start()
 
@@ -38,7 +44,7 @@ def main():
     bots = get_bots()
     print("Инициализация ботов закончена")
     print()
-    print(f"Запуск ботов: {', '.join([x.name for x in bots])}")
+    print(f"Запуск ботов: {', '.join([_ for _ in bots.keys()])}")
     run_bots(bots)
 
 

@@ -1,8 +1,12 @@
-def say(event=None):
+def say(event):
     print("Привет, селовек")
 
 
-cmd = {"привет": say}
+def say2(event):
+    print("Привет, селовек")
+
+
+cmd = {say: "привет", say2: "привет2"}
 
 
 
