@@ -82,7 +82,7 @@ class Bot:
                         update_cmd.append(com)
                     self.cmds[com] = func
             deleted_cmd = [item for item in self.imported[path_to_import]["cmds"] if item not in (add_cmd+update_cmd)]
-            for com in deleted_cmd:#######################
+            for com in deleted_cmd:
                 self.imported[path_to_import]["cmds"].remove(com)
                 func = self.cmds.pop(com)  # возвращает функцию
                 if not self.__is_func_used(func):  # если функция нигде не используется то удалить ее
