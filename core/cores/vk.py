@@ -14,7 +14,7 @@ class Vk(Bot):
     def __init__(self, name, config):
         # print(f"Инициализация бота {name}")
         super().__init__(name)
-        self.name = name
+        self.__name = name
         self.default_params = {"v": "5.131",  # Версия апи вк
                                "access_token": config["token"],  # токен группы
                                "disable_mentions": 1,  # флаг отключить уведомление об упоминании в сообщении, может принимать значения 1 или 0
@@ -62,7 +62,7 @@ class Vk(Bot):
         self.key = data['key']
 
     def start(self):
-        th = Thread(target=self.run, daemon=False, name=self.name)
+        th = Thread(target=self.run, daemon=False, name=self.__name)
         th.start()
 
     # TODO сделать для пользователя https://vk.com/dev/using_longpoll
@@ -72,12 +72,12 @@ class Vk(Bot):
             url = f'{self.server}?act=a_check&key={self.key}&ts={self.ts}&wait={self.wait}'
             response = get(url, proxies=self.proxy).json()
         except JSONDecodeError:
-            raise ValueError(f"[{self.name}] Vk LP response was not received in JSON format")
+            raise ValueError(f"[{self.__name}] Vk LP response was not received in JSON format")
         if platform == 'linux':
             print(
-                f"Бот \"{self.name}\" запущен. Его pid = {getpid()}\nДля отключения OOM Killer напишите: sudo echo -17 > /proc/{getpid()}/oom_adj")
+                f"Бот \"{self.__name}\" запущен. Его pid = {getpid()}\nДля отключения OOM Killer напишите: sudo echo -17 > /proc/{getpid()}/oom_adj")
         else:
-            print(f"Бот \"{self.name}\" успешно запущен!")
+            print(f"Бот \"{self.__name}\" успешно запущен!")
         while True:
             fail = 0
             try:
@@ -86,28 +86,30 @@ class Vk(Bot):
                 if "failed" in response:
                     fail = response["failed"]
                     if fail == 1:
-                        print(f"[{self.name}] история событий устарела. Обновление ts")
+                        print(f"[{self.__name}] история событий устарела. Обновление ts")
                         self.ts = response['ts']
                     elif fail == 2:
-                        print(f"[{self.name}] истекло время действия ключа. Обновление LP")
+                        print(f"[{self.__name}] истекло время действия ключа. Обновление LP")
                         self.getLongPollServer()
                     elif fail == 3:
-                        print(f"[{self.name}] информация устарела. Обновление LP")
+                        print(f"[{self.__name}] информация устарела. Обновление LP")
                         self.getLongPollServer()
                     else:
                         fail = -1
                         self.getLongPollServer()
-                        print(f"[{self.name}] неизвестная ошибка LP. Обновление LP")
+                        print(f"[{self.__name}] неизвестная ошибка LP. Обновление LP")
                 else:
                     self.ts = response['ts']
             except JSONDecodeError:
                 fail = -1
                 self.getLongPollServer()
-                print(f"[{self.name}] Vk LP response was not received in JSON format")
+                print(f"[{self.__name}] Vk LP response was not received in JSON format")
             if fail == 0:  # если нет ошибок
                 updates = response['updates']  # получение всех обновлений
                 for update in updates:  # получение каждого обновления за данный периуд
-                    self.__run_update(update)  # TODO каждое обновление в новый поток
+                    th_update = Thread(target=self.__run_update(update), daemon=False, name=f"{self.__name}_{self.ts}")  # требуется проверить на больших нагрузках
+                    th_update.start()
+                    #self.__run_update(update)
 
     def __run_update(self, update):
         self.obj = update["object"]
@@ -142,7 +144,6 @@ class Vk(Bot):
             self.attachments = self.obj["attachments"]
             self.photo = conversationMessage["response"]["profiles"][0]["photo_100"] if "profiles" in conversationMessage["response"] else conversationMessage["response"]["groups"][0]["photo_100"]
             self.name = f'{conversationMessage["response"]["profiles"][0]["first_name"]} {conversationMessage["response"]["profiles"][0]["last_name"]}' if "profiles" in conversationMessage["response"] else conversationMessage["response"]["groups"][0]["name"]
-            self.name = f"{self.first_name} {self.last_name}"
             if self.cmd:
                 self.cmds[self.cmd](self)  # вызов команды TODO если команда возращает текст, то отправть его (поддержка многих ядер различных ботов (вк, дискорд, телеграм и т.д.) одной командой)
             elif (("" not in self.names) and self.names) or (("" in self.names or not self.names) and self.peer_id == self.group_id):  # можно без обращения и это лс

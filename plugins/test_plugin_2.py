@@ -7,7 +7,7 @@ def wall_post_new(bot):
 
 
 def get_chat(bot):
-    bot.send(f"Вывыан эвент {bot.peer_id}")
+    bot.send(f"{bot.name}")
 
 
 cmd = {say: "cmd", get_chat: "getchat"}
