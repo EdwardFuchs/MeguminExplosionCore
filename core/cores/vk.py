@@ -13,7 +13,7 @@ api_url = "https://api.vk.com/method/"  # url для доступа к вк ап
 class Vk(Bot):
     def __init__(self, name, config):
         # print(f"Инициализация бота {name}")
-        super().__init__()
+        super().__init__(name)
         self.name = name
         self.default_params = {"v": "5.131",  # Версия апи вк
                                "access_token": config["token"],  # токен группы
@@ -28,9 +28,11 @@ class Vk(Bot):
         else:
             self.proxy = None
         self.group_id = self.groups.getById()["response"][0]["id"]
-
-        # self.disable_mentions = 1  # флаг: отключить уведомление об упоминании в сообщении, может принимать значения 1 или 0
-        # self.dont_parse_links = 1  # флаг: не создавать сниппет ссылки из сообщения, может принимать значения 1 или 0
+        self.names = []  # набор имен, на которые бот будет отзываться (при пустом массиве будет отзываться на все команды)
+        for name in config["names"]:
+            self.names.append(name.lower())
+        self.log_chat = config["log_chat"]  # peer_id для сообщений с информацией
+        self.error_chat = config["error_chat"]  # peer_id для сообщений с ошибками
         self.key = None  # секретный ключ сессии
         self.server = None  # адрес сервера
         self.ts = None  # номер последнего события, начиная с которого нужно получать данные
@@ -41,32 +43,16 @@ class Vk(Bot):
         return VkAPI(method_name=method_name, default_params=self.default_params, proxy=self.proxy)
 
     def method(self, method, **params):  # поддержка старых версий ядер
-        # TODO сделать через класс VkAPI
-        pass
-        # updated_params = self.default_params.copy()  # копирлвание стандартных параметров
-        # updated_params |= params  # python 3.9 (old is "updated_params.update(params)")
-        # request_url = f"{api_url}/{method}"
-        # # if "type" in params and params["type"] == "get":
-        # #     result = get(request_url, params=params, proxies=self.proxy, timeout=30)
-        # # else:
-        # result = post(request_url, data=params, proxies=self.proxy, timeout=30)
-        # try:
-        #     result = result.json()
-        # except JSONDecodeError:
-        #     # TODO сделать отправку в ошибочный чат
-        #     pass
-        # if "error" in result:
-        #     # TODO на рассмотрении
-        #     pass
-        # return result
+        return VkAPI(method, self.default_params, self.proxy).method(**params)
 
     def send(self, text, **params):
-        print(self.peer_id)
         if "random_id" not in params:
             params["random_id"] = randint(-2147483648, 2147483647)
         send_to_types = ["user_id", "peer_id", "peer_ids", "domain", "chat_id", "reply_to"]  # аргументы используемые для отпарви сообщения
         if not any(x in send_to_types for x in params):  # Если в send не нужен другой получатель (основная функция)
-            return self.messages.send(message=text, peer_id=self.peer_id, **params)
+            if self.peed_id:
+                return self.messages.send(message=text, peer_id=self.peer_id, **params)
+            return
         return self.messages.send(**params)
 
     def getLongPollServer(self):
@@ -120,37 +106,52 @@ class Vk(Bot):
                 print(f"[{self.name}] Vk LP response was not received in JSON format")
             if fail == 0:  # если нет ошибок
                 updates = response['updates']  # получение всех обновлений
-                for update in updates:  # получение каждого обновления
+                for update in updates:  # получение каждого обновления за данный периуд
                     self.__run_update(update)  # TODO каждое обновление в новый поток
 
     def __run_update(self, update):
-        obj = update["object"]
-        # TODO добавить привязку эвентов ДО message_new
-        if update["type"] == "message_new" and obj["out"] == 0:
-            print(f"новое сообщение от {obj['from_id']} из {obj['peer_id']}: {obj['text']}")
-            conversationMessage = self.messages.getByConversationMessageId(peer_id=obj["peer_id"], conversation_message_ids=obj["conversation_message_id"], extended=1)  # Получаем всю инфу по сообщению
-            self.peer_id = obj["peer_id"]
+        self.obj = update["object"]
+        self.event = update["type"]
+        self.peer_id = self.obj["peer_id"] if "peer_id" in self.obj else self.log_chat if self.log_chat else None
+        if self.event in self.events:
+            self.events[self.event](self)  # вызов эвента TODO если эвент возращает текст, то отправть его (поддержка многих ядер различных ботов (вк, дискорд, телеграм и т.д.) одним эветом)
+        if self.event == "message_new" and self.obj["out"] == 0 and self.obj["from_id"] > 0:  # Новое сообщение и оно входящее и от человека
+            self.args = self.obj["text"].lower().split()   # массив аргументов, приведенных в lower
+            self.cmd = None
+            if self.args[0] in self.names:
+                if self.args[1] in self.cmds:
+                    self.cmd = self.args[1]  # строка с командой
+                    self.args = self.args[2:]  # набор аргументов
+                    self.text = " ".join(self.obj["text"].split()[2:])  # текст соообщения без команды и обращения
+                else:
+                    self.args = self.args[1:]  # набор аргументов
+                    self.text = " ".join(self.obj["text"].split()[1:])  # текст соообщения без команды и обращения
+            elif "" in self.names or not self.names:
+                if self.args[0] in self.cmds:
+                    self.cmd = self.args[0]  # строка с командой
+                    self.args = self.args[1:]  # набор аргументов
+                    self.text = " ".join(self.obj["text"].split()[1:])  # текст соообщения без команды и обращения
+                else:
+                    self.text = self.obj["text"]  # текст соообщения без команды и обращения
+            print(f"новое сообщение от {self.obj['from_id']} из {self.obj['peer_id']}: {self.obj['text']}")
+            conversationMessage = self.messages.getByConversationMessageId(peer_id=self.obj["peer_id"], conversation_message_ids=self.obj["conversation_message_id"], extended=1)  # Получаем всю инфу по сообщению
             self.default_params = self.default_params
-            self.from_id = obj["from_id"]
+            self.from_id = self.obj["from_id"]
             self.id = conversationMessage["response"]["items"][0]["id"]
-            self.text = obj["text"]
-            self.args = obj["text"]  # массив аргументов
-            self.cmd = obj["text"]  # строка с командой
-            self.fwd_messages = obj["fwd_messages"]
-            self.attachments = obj["attachments"]
-            self.photo = conversationMessage["response"]["profiles"][0]["photo_100"]
-            self.first_name = conversationMessage["response"]["profiles"][0]["first_name"]
-            self.last_name = conversationMessage["response"]["profiles"][0]["last_name"]
-            self.obj = obj
-            # vk.peer_id = 557539687
-            self.send(text="qq")
-            # print(conversationMessage)
-            # print(self.messages.send(
-            #     peer_id=obj["peer_id"],
-            #     random_id=0,
-            #     message="ответочка",
-            #     reply_to=conversationMessage["response"]["items"][0]["id"]
-            # ))
+            self.fwd = self.obj["reply_message"] if "reply_message" in self.obj else self.obj["fwd_messages"]
+            self.attachments = self.obj["attachments"]
+            self.photo = conversationMessage["response"]["profiles"][0]["photo_100"] if "profiles" in conversationMessage["response"] else conversationMessage["response"]["groups"][0]["photo_100"]
+            self.name = f'{conversationMessage["response"]["profiles"][0]["first_name"]} {conversationMessage["response"]["profiles"][0]["last_name"]}' if "profiles" in conversationMessage["response"] else conversationMessage["response"]["groups"][0]["name"]
+            self.name = f"{self.first_name} {self.last_name}"
+            if self.cmd:
+                self.cmds[self.cmd](self)  # вызов команды TODO если команда возращает текст, то отправть его (поддержка многих ядер различных ботов (вк, дискорд, телеграм и т.д.) одной командой)
+            elif (("" not in self.names) and self.names) or (("" in self.names or not self.names) and self.peer_id == self.group_id):  # можно без обращения и это лс
+                self.cmd_not_found()  # вызов функции
+            else:
+                pass  # Если это просто сообщение
+
+    def cmd_not_found(self):
+        self.send("Команда не найдена")
 
 
 class VkAPI:
@@ -180,8 +181,9 @@ class VkAPI:
         elif "error" in result:
             raise ValueError(result["error"]["error_msg"])
 
-
-# event = {
+# Вынесено сюда как дополнительная помента о всех эвентах, которые на время написания данного ядра бота Vk
+# + добавть эвент no_cmd
+# events_types = {
 #     "message_new": "входящее сообщение",
 #     "message_reply": "новое исходящее сообщение",
 #     "message_edit": "редактирование сообщения",

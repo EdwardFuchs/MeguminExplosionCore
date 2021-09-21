@@ -11,7 +11,7 @@ def get_bots():
     bots = {}
     for bot in listdir("bots"):
         bot_name = ".".join(bot.split(".")[:-1])
-        with open(f"./bots/{bot}") as file:
+        with open(f"./bots/{bot}", encoding="utf-8") as file:
             bot = loads(file.read())
         if not bot["enable"]:
             continue

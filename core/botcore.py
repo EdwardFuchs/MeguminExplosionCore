@@ -3,7 +3,8 @@ from typing import List, Any
 
 
 class Bot:
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.cmds = {}  # список команд с привязкой
         self.events = {}  # список эвенов с привязкой
         self.imported = {}  # список всех заимпортированных файлов и храняшихся в нем эвентов и комманд
@@ -18,7 +19,6 @@ class Bot:
                 sys.modules.pop(path_to_import)
                 import_cmd = __import__(path_to_import, fromlist=["cmd", "event"])
             # print(dir(import_cmd))
-            msg = ""
             cmd = None
             event = None
             if "cmd" in dir(import_cmd):
@@ -27,11 +27,11 @@ class Bot:
                 event = import_cmd.event
             if path_to_import not in self.imported:
                 self.imported[path_to_import] = {"cmds": [], "events": []}
-            msg += self.__reload_plugins(path_to_import=path_to_import, cmd=cmd, event=event) + "\n"
-            return msg
-        except ValueError as e:
-            msg = f"Не получилось импортиовать файл {path} с ошибкой {e}"
-            return msg
+            return self.__reload_plugins(path_to_import=path_to_import, cmd=cmd, event=event)
+        except Exception as e:  # TODO чат с ошибками
+            msg = f"Exception: Не получилось импортиовать файл {path} с ошибкой {e}"
+            print(msg)
+        return 0, 0, 0, 0, 0, 0
 
     def _del_plugin(self, path):  # Для использования в плагинах опытными пользователями
         path_to_import = self.__reformat_path(path)
@@ -64,17 +64,18 @@ class Bot:
                 return True
         return False
 
-    def __reload_plugins(self, path_to_import: str, cmd: dict = None, event: dict = None):
-        res = ""
+    def __reload_plugins(self, path_to_import: str, cmd: dict = None, event: dict = None):  # TODO удалить если пустой cmd или event (если до этого был не пустым)
+        add_cmd = []
+        update_cmd = []
+        deleted_cmd = []
+        add_event = []
+        update_event = []
+        deleted_event = []
         if cmd:
             cmd = self.__to_good_format(cmd)
-            res += "Добавлена(ы) команда(ы): {add_cmd}\n" \
-                   "Обновлена(ы) команда(ы): {update_cmd}\n" \
-                   "Удалена(ы) команда(ы): {deleted_cmd}\n"
-            add_cmd = []
-            update_cmd = []
             for func in cmd.keys():
                 for com in cmd[func]:
+                    com = com.lower()
                     if com not in self.cmds:
                         add_cmd.append(com)
                         self.imported[path_to_import]["cmds"].append(com)
@@ -87,19 +88,14 @@ class Bot:
                 func = self.cmds.pop(com)  # возвращает функцию
                 if not self.__is_func_used(func):  # если функция нигде не используется то удалить ее
                     del func
-            res = res.format(add_cmd=', '.join(add_cmd), update_cmd=', '.join(update_cmd), deleted_cmd=', '.join(deleted_cmd))
         if event:
             event = self.__to_good_format(event)
-            res += "Добавлен(ы) эвент(ы): {add_event}\n" \
-                   "Обновлен(ы) эвент(ы): {update_event}\n" \
-                   "Удален(ы) эвент(ы): {deleted_event}\n"
-            add_event = []
-            update_event = []
             for func in event.keys():
                 for ev in event[func]:
+                    ev = ev.lower()
                     if ev not in self.events:
                         add_event.append(ev)
-                        self.imported[path_to_import]["events"].append(ev)
+                        self.imported[path_to_import]["events"].append(ev.lower())
                     else:
                         update_event.append(ev)
                     self.events[ev] = func
@@ -109,10 +105,8 @@ class Bot:
                 func = self.events.pop(ev)  # возвращает функцию
                 if not self.__is_func_used(func):  # если функция нигде не используется то удалить ее
                     del func
-            res = res.format(add_event=', '.join(add_event), update_event=', '.join(update_event), deleted_event=', '.join(deleted_event))
-        if res:
-            return res
-        raise ValueError("cmd или event должны быть заданы")
+        return add_cmd, update_cmd, deleted_cmd, add_event, update_event, deleted_event
+        # raise ValueError("cmd или event должны быть заданы")
 
     @staticmethod
     def run():
