@@ -120,8 +120,8 @@ class Vk(Bot):
                 self.events[self.event](self)  # вызов эвента TODO если эвент возращает текст, то отправть его (поддержка многих ядер различных ботов (вк, дискорд, телеграм и т.д.) одним эветом)
             except Exception as error:
                 if self.error_chat:
-                    self.send(f"[{self.__name}]: ошибка при выполнение эвента: {error}", peer_id=self.error_chat)
-                print(f"[{self.__name}]: ошибка при выполнение эвента: {error}")
+                    self.send(f"[{self.__name}]: ошибка при выполнение эвента {self.event}: {error}", peer_id=self.error_chat)
+                print(f"[ERROR] [{self.__name}]: ошибка при выполнение эвента {self.event}: {error}")
         if self.event == "message_new" and self.obj["out"] == 0 and self.obj["from_id"] > 0:  # Новое сообщение и оно входящее и от человека
             self.args = self.obj["text"].lower().split()   # массив аргументов, приведенных в lower
             self.cmd = None
@@ -157,8 +157,8 @@ class Vk(Bot):
                     self.cmds[self.cmd](self)  # вызов команды TODO если команда возращает текст, то отправть его (поддержка многих ядер различных ботов (вк, дискорд, телеграм и т.д.) одной командой)
                 except Exception as error:
                     if self.error_chat:
-                        self.send(f"[{self.__name}]: ошибка при выполнение команды: {error}", peer_id=self.error_chat)
-                    print(f"[{self.__name}]: ошибка при выполнение команды: {error}")
+                        self.send(f"[{self.__name}]: ошибка при выполнение команды {self.cmd}: {error}", peer_id=self.error_chat)
+                    print(f"[ERROR] [{self.__name}]: ошибка при выполнение команды {self.cmd}: {error}")
                     self.send(f"Ошибка при выполнение команды")
             elif (("" not in self.names) and self.names) or (("" in self.names or not self.names) and self.peer_id == self.group_id):  # можно без обращения и это лс
                 try:
@@ -166,7 +166,7 @@ class Vk(Bot):
                 except Exception as error:
                     if self.error_chat:
                         self.send(f"[{self.__name}]: ошибка при выполнение cmd_not_found: {error}", peer_id=self.error_chat)
-                    print(f"[{self.__name}]: ошибка при выполнение cmd_not_found: {error}")
+                    print(f"[ERROR] [{self.__name}]: ошибка при выполнение cmd_not_found: {error}")
                     self.send(f"Ошибка при попытке ответа")
             else:
                 pass  # Если это просто сообщение
