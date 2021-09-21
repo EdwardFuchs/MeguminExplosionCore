@@ -8,7 +8,7 @@ from threading import Thread
 
 # print("import")
 api_url = "https://api.vk.com/method/"  # url для доступа к вк апи
-
+headers = {'User-Agent': 'KateMobileAndroid/56 lite-460 (Android 4.4.2; SDK 19; x86; unknown Android SDK built for x86; en)'}  # headers для работы методов audio (при использовании нужного ключа)
 
 class Vk(Bot):
     def __init__(self, name, config):
@@ -171,7 +171,7 @@ class VkAPI:
             raise NameError(f"{self.method_name} заблокирован в целях безопастности")
         updated_params = self.default_params.copy()
         updated_params |= params  # python 3.9 (old is "updated_params.update(params)")
-        result = post(api_url + self.method_name, data=updated_params, proxies=self.proxy)
+        result = post(api_url + self.method_name, data=updated_params, proxies=self.proxy, headers=headers)
         try:
             result = result.json()
         except JSONDecodeError:
