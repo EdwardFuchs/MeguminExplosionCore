@@ -53,7 +53,7 @@ class Vk(Bot):
             if self.peed_id:
                 return self.messages.send(message=text, peer_id=self.peer_id, **params)
             return
-        return self.messages.send(**params)
+        return self.messages.send(message=text, **params)
 
     def getLongPollServer(self):
         data = self.groups.getLongPollServer(group_id=self.group_id)["response"]
@@ -96,14 +96,14 @@ class Vk(Bot):
                         self.getLongPollServer()
                     else:
                         fail = -1
-                        self.getLongPollServer()
                         print(f"[{self.__name}] неизвестная ошибка LP. Обновление LP")
+                        self.getLongPollServer()
                 else:
                     self.ts = response['ts']
             except JSONDecodeError:
                 fail = -1
-                self.getLongPollServer()
                 print(f"[{self.__name}] Vk LP response was not received in JSON format")
+                self.getLongPollServer()
             if fail == 0:  # если нет ошибок
                 updates = response['updates']  # получение всех обновлений
                 for update in updates:  # получение каждого обновления за данный периуд
@@ -116,7 +116,12 @@ class Vk(Bot):
         self.event = update["type"]
         self.peer_id = self.obj["peer_id"] if "peer_id" in self.obj else self.log_chat if self.log_chat else None
         if self.event in self.events:
-            self.events[self.event](self)  # вызов эвента TODO если эвент возращает текст, то отправть его (поддержка многих ядер различных ботов (вк, дискорд, телеграм и т.д.) одним эветом)
+            try:
+                self.events[self.event](self)  # вызов эвента TODO если эвент возращает текст, то отправть его (поддержка многих ядер различных ботов (вк, дискорд, телеграм и т.д.) одним эветом)
+            except Exception as error:
+                if self.error_chat:
+                    self.send(f"[{self.__name}]: ошибка при выполнение эвента: {error}", peer_id=self.error_chat)
+                print(f"[{self.__name}]: ошибка при выполнение эвента: {error}")
         if self.event == "message_new" and self.obj["out"] == 0 and self.obj["from_id"] > 0:  # Новое сообщение и оно входящее и от человека
             self.args = self.obj["text"].lower().split()   # массив аргументов, приведенных в lower
             self.cmd = None
@@ -124,18 +129,15 @@ class Vk(Bot):
                 if self.args[1] in self.cmds:
                     self.cmd = self.args[1]  # строка с командой
                     self.args = self.args[2:]  # набор аргументов
-                    self.text = " ".join(self.obj["text"].split()[2:])  # текст соообщения без команды и обращения
+                    self.text = " ".join(self.obj["text"].split()[1:])  # текст соообщения без обращения
                 else:
                     self.args = self.args[1:]  # набор аргументов
-                    self.text = " ".join(self.obj["text"].split()[1:])  # текст соообщения без команды и обращения
+                    self.text = self.obj["text"]  # текст соообщения без команды и обращения
             elif "" in self.names or not self.names:
                 if self.args[0] in self.cmds:
                     self.cmd = self.args[0]  # строка с командой
                     self.args = self.args[1:]  # набор аргументов
-                    self.text = " ".join(self.obj["text"].split()[1:])  # текст соообщения без команды и обращения
-                else:
-                    self.text = self.obj["text"]  # текст соообщения без команды и обращения
-            print(f"новое сообщение от {self.obj['from_id']} из {self.obj['peer_id']}: {self.obj['text']}")
+                self.text = self.obj["text"]  # текст соообщения без команды и обращения
             conversationMessage = self.messages.getByConversationMessageId(peer_id=self.obj["peer_id"], conversation_message_ids=self.obj["conversation_message_id"], extended=1)  # Получаем всю инфу по сообщению
             self.default_params = self.default_params
             self.from_id = self.obj["from_id"]
@@ -144,10 +146,28 @@ class Vk(Bot):
             self.attachments = self.obj["attachments"]
             self.photo = conversationMessage["response"]["profiles"][0]["photo_100"] if "profiles" in conversationMessage["response"] else conversationMessage["response"]["groups"][0]["photo_100"]
             self.name = f'{conversationMessage["response"]["profiles"][0]["first_name"]} {conversationMessage["response"]["profiles"][0]["last_name"]}' if "profiles" in conversationMessage["response"] else conversationMessage["response"]["groups"][0]["name"]
+            args = self.obj["text"].lower().split()
+            if (args and args[0] in self.names) or self.peer_id < 2000000000 or self.cmd:
+                msg = f"[{self.__name}]: сообщение от [id{self.from_id}|{self.name}]({self.peer_id}): {self.text}"
+                print(msg)
+                if self.log_chat:
+                    self.send(msg, peer_id=self.log_chat)
             if self.cmd:
-                self.cmds[self.cmd](self)  # вызов команды TODO если команда возращает текст, то отправть его (поддержка многих ядер различных ботов (вк, дискорд, телеграм и т.д.) одной командой)
+                try:
+                    self.cmds[self.cmd](self)  # вызов команды TODO если команда возращает текст, то отправть его (поддержка многих ядер различных ботов (вк, дискорд, телеграм и т.д.) одной командой)
+                except Exception as error:
+                    if self.error_chat:
+                        self.send(f"[{self.__name}]: ошибка при выполнение команды: {error}", peer_id=self.error_chat)
+                    print(f"[{self.__name}]: ошибка при выполнение команды: {error}")
+                    self.send(f"Ошибка при выполнение команды")
             elif (("" not in self.names) and self.names) or (("" in self.names or not self.names) and self.peer_id == self.group_id):  # можно без обращения и это лс
-                self.cmd_not_found()  # вызов функции
+                try:
+                    self.cmd_not_found()  # вызов функции
+                except Exception as error:
+                    if self.error_chat:
+                        self.send(f"[{self.__name}]: ошибка при выполнение cmd_not_found: {error}", peer_id=self.error_chat)
+                    print(f"[{self.__name}]: ошибка при выполнение cmd_not_found: {error}")
+                    self.send(f"Ошибка при попытке ответа")
             else:
                 pass  # Если это просто сообщение
 
