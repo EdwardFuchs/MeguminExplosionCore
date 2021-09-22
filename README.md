@@ -1,6 +1,11 @@
 ![](https://img.shields.io/github/pipenv/locked/python-version/EdwardFuchs/MeguminExplosionCore) 
-![](https://img.shields.io/badge/license-GPL%20v3.0-brightgreen.svg) 
-![](https://badges.pufler.dev/visits/{EdwardFuchs}/{MeguminExplosionCore}) 
+![](https://img.shields.io/github/license/EdwardFuchs/MeguminExplosionCore) 
+![](https://img.shields.io/github/pipenv/locked/dependency-version/EdwardFuchs/MeguminExplosionCore/watchdog)
+![](https://badges.pufler.dev/visits/EdwardFuchs/MeguminExplosionCore) 
+![](https://img.shields.io/github/repo-size/EdwardFuchs/MeguminExplosionCore)
+![](https://img.shields.io/tokei/lines/github/EdwardFuchs/MeguminExplosionCore)
+![](https://img.shields.io/github/commit-activity/m/EdwardFuchs/MeguminExplosionCore)
+![](https://img.shields.io/github/last-commit/EdwardFuchs/MeguminExplosionCore)
 
 
 # MeguminExplosionCore
