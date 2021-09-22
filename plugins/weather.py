@@ -18,7 +18,7 @@ import os.path  # Для проверки существования файла
 from random import choice
 
 # Настройка:
-appId = "****************************************"  # APPID https://openweathermap.org/appid#signup
+appId = "********************************"  # APPID https://openweathermap.org/appid#signup
 use_graphic = True  # Использовать ли графику
 font_name = "NotoSans-Regular.ttf"
 font_url = "https://github.com/EdwardFuchs/furry-sniffle/blob/main/NotoSans-Regular.ttf?raw=true"
@@ -56,12 +56,12 @@ def with_graphic(bot, city, country, icon, temp, temp_min, temp_max, utc):
     icon = Image.open(requests.get(icon_url, stream=True).raw)
     icon = icon.resize([300, 300], resample=Image.LANCZOS)
     # Проверка наличия шрифта
-    font_path = f"Files/Fonts/{font_name}"
+    font_path = f"files/fonts/{font_name}"
     if not os.path.isfile(font_path):
         bot.send("Похоже вы в певый раз запустили графический плагин. Скачиваем нужный шрифт и помещаем его в нужное место...")
-        if not os.path.exists("Files") or not os.path.exists("Files/Fonts"):
-            bot.send("Создаем папку Files/Fonts/")
-            os.makedirs("Files/Fonts/")
+        if not os.path.exists("files") or not os.path.exists("files/Fonts"):
+            bot.send("Создаем папку files/fonts/")
+            os.makedirs("files/fonts/")
         fnt = requests.get(f"{font_url}")
         with open(font_path, "wb") as f:
             f.write(fnt.content)
