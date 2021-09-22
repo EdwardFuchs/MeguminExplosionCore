@@ -126,3 +126,5 @@ dmypy.json
 bots/*
 !bots/bot_example.json
 UpdateGit.bat
+test/
+test/*
