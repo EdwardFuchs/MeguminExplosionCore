@@ -18,7 +18,7 @@ import os.path  # Для проверки существования файла
 from random import choice
 
 # Настройка:
-appId = "**************"  # APPID https://openweathermap.org/appid#signup
+appId = "****************************************"  # APPID https://openweathermap.org/appid#signup
 use_graphic = True  # Использовать ли графику
 font_name = "NotoSans-Regular.ttf"
 font_url = "https://github.com/EdwardFuchs/furry-sniffle/blob/main/NotoSans-Regular.ttf?raw=true"
