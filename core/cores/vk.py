@@ -5,6 +5,7 @@ from json.decoder import JSONDecodeError
 from sys import platform
 from os import getpid
 from threading import Thread
+from requests.exceptions import ConnectionError
 
 # print("import")
 api_url = "https://api.vk.com/method/"  # url для доступа к вк апи
@@ -14,7 +15,6 @@ class Vk(Bot):
     def __init__(self, name, config):
         # print(f"Инициализация бота {name}")
         super().__init__(name)
-        self.__name = name
         self.default_params = {"v": "5.131",  # Версия апи вк
                                "access_token": config["token"],  # токен группы
                                "disable_mentions": 1,  # флаг отключить уведомление об упоминании в сообщении, может принимать значения 1 или 0
@@ -27,6 +27,7 @@ class Vk(Bot):
             }
         else:
             self.proxy = None
+        self.tokens = config["tokens"]
         self.group_id = self.groups.getById()["response"][0]["id"]
         self.names = []  # набор имен, на которые бот будет отзываться (при пустом массиве будет отзываться на все команды)
         for name in config["names"]:
@@ -45,6 +46,12 @@ class Vk(Bot):
     def method(self, method, **params):  # поддержка старых версий ядер
         return VkAPI(method, self.default_params, self.proxy).method(**params)
 
+    def post(self, url, **args):
+        return post(url, proxies=self.proxy, **args).json()
+
+    def get(self, url, **args):
+        return get(url, proxies=self.proxy, **args).json()
+
     def send(self, text, **params):
         if "random_id" not in params:
             params["random_id"] = randint(-2147483648, 2147483647)
@@ -62,7 +69,7 @@ class Vk(Bot):
         self.key = data['key']
 
     def start(self):
-        th = Thread(target=self.run, daemon=False, name=self.__name)
+        th = Thread(target=self.run, daemon=False, name=self._name)
         th.start()
 
     # TODO сделать для пользователя https://vk.com/dev/using_longpoll
@@ -72,12 +79,12 @@ class Vk(Bot):
             url = f'{self.server}?act=a_check&key={self.key}&ts={self.ts}&wait={self.wait}'
             response = get(url, proxies=self.proxy).json()
         except JSONDecodeError:
-            raise ValueError(f"[{self.__name}] Vk LP response was not received in JSON format")
+            raise ValueError(f"[{self._name}] Vk LP response was not received in JSON format")
         if platform == 'linux':
             print(
-                f"Бот \"{self.__name}\" запущен. Его pid = {getpid()}\nДля отключения OOM Killer напишите: sudo echo -17 > /proc/{getpid()}/oom_adj")
+                f"Бот \"{self._name}\" запущен. Его pid = {getpid()}\nДля отключения OOM Killer напишите: sudo echo -17 > /proc/{getpid()}/oom_adj")
         else:
-            print(f"Бот \"{self.__name}\" успешно запущен!")
+            print(f"Бот \"{self._name}\" успешно запущен!")
         while True:
             fail = 0
             try:
@@ -86,90 +93,95 @@ class Vk(Bot):
                 if "failed" in response:
                     fail = response["failed"]
                     if fail == 1:
-                        print(f"[{self.__name}] история событий устарела. Обновление ts")
+                        print(f"[{self._name}] история событий устарела. Обновление ts")
                         self.ts = response['ts']
                     elif fail == 2:
-                        print(f"[{self.__name}] истекло время действия ключа. Обновление LP")
+                        print(f"[{self._name}] истекло время действия ключа. Обновление LP")
                         self.getLongPollServer()
                     elif fail == 3:
-                        print(f"[{self.__name}] информация устарела. Обновление LP")
+                        print(f"[{self._name}] информация устарела. Обновление LP")
                         self.getLongPollServer()
                     else:
                         fail = -1
-                        print(f"[{self.__name}] неизвестная ошибка LP. Обновление LP")
+                        print(f"[{self._name}] неизвестная ошибка LP. Обновление LP")
                         self.getLongPollServer()
                 else:
                     self.ts = response['ts']
             except JSONDecodeError:
                 fail = -1
-                print(f"[{self.__name}] Vk LP response was not received in JSON format")
+                print(f"[{self._name}] Vk LP response was not received in JSON format")
                 self.getLongPollServer()
+            except ConnectionError as e:
+                print(f"[{self._name}] {e}")
             if fail == 0:  # если нет ошибок
                 updates = response['updates']  # получение всех обновлений
                 for update in updates:  # получение каждого обновления за данный периуд
-                    th_update = Thread(target=self.__run_update(update), daemon=False, name=f"{self.__name}_{self.ts}")  # требуется проверить на больших нагрузках
+                    th_update = Thread(target=self.__run_update(update), daemon=False, name=f"{self._name}_{self.ts}")  # требуется проверить на больших нагрузках
                     th_update.start()
                     #self.__run_update(update)
 
     def __run_update(self, update):
         self.obj = update["object"]
         self.event = update["type"]
-        self.peer_id = self.obj["peer_id"] if "peer_id" in self.obj else self.log_chat if self.log_chat else None
+        self.peer_id = self.obj["message"]["peer_id"] if (("message" in self.obj) and ("peer_id" in self.obj["message"])) else self.log_chat if self.log_chat else None
         if self.event in self.events:
             try:
-                self.events[self.event](self)  # вызов эвента TODO если эвент возращает текст, то отправть его (поддержка многих ядер различных ботов (вк, дискорд, телеграм и т.д.) одним эветом)
+                self.events[self.event](self)  # вызов эвента
             except Exception as error:
                 if self.error_chat:
-                    self.send(f"[{self.__name}]: ошибка при выполнение эвента {self.event}: {error}", peer_id=self.error_chat)
-                print(f"[ERROR] [{self.__name}]: ошибка при выполнение эвента {self.event}: {error}")
-        if self.event == "message_new" and self.obj["out"] == 0 and self.obj["from_id"] > 0:  # Новое сообщение и оно входящее и от человека
-            self.args = self.obj["text"].lower().split()   # массив аргументов, приведенных в lower
+                    self.send(f"[{self._name}]: ошибка при выполнение эвента {self.event}: {error}", peer_id=self.error_chat)
+                print(f"[ERROR] [{self._name}]: ошибка при выполнение эвента {self.event}: {error}")
+        if self.event == "message_new" and self.obj["message"]["out"] == 0 and self.obj["message"]["from_id"] > 0 and self.obj["message"]["text"]:  # Новое сообщение и оно входящее и от человека
+            self.args = self.obj["message"]["text"].lower().split()   # массив аргументов, приведенных в lower
             self.cmd = None
             if self.args[0] in self.names:
-                if self.args[1] in self.cmds:
+                if len(self.args) > 1 and self.args[1] in self.cmds:
                     self.cmd = self.args[1]  # строка с командой
                     self.args = self.args[2:]  # набор аргументов
-                    self.text = " ".join(self.obj["text"].split()[1:])  # текст соообщения без обращения
+                    self.text = " ".join(self.obj["message"]["text"].split()[2:])  # текст соообщения без обращения и команды
                 else:
                     self.args = self.args[1:]  # набор аргументов
-                    self.text = self.obj["text"]  # текст соообщения без команды и обращения
+                    self.text = " ".join(self.obj["message"]["text"].split()[1:])  # текст соообщения без обращения и команды
             elif "" in self.names or not self.names:
                 if self.args[0] in self.cmds:
                     self.cmd = self.args[0]  # строка с командой
                     self.args = self.args[1:]  # набор аргументов
-                self.text = self.obj["text"]  # текст соообщения без команды и обращения
-            conversationMessage = self.messages.getByConversationMessageId(peer_id=self.obj["peer_id"], conversation_message_ids=self.obj["conversation_message_id"], extended=1)  # Получаем всю инфу по сообщению
-            self.default_params = self.default_params
-            self.from_id = self.obj["from_id"]
-            self.id = conversationMessage["response"]["items"][0]["id"]
-            self.fwd = self.obj["reply_message"] if "reply_message" in self.obj else self.obj["fwd_messages"]
-            self.attachments = self.obj["attachments"]
-            self.photo = conversationMessage["response"]["profiles"][0]["photo_100"] if "profiles" in conversationMessage["response"] else conversationMessage["response"]["groups"][0]["photo_100"]
-            self.name = f'{conversationMessage["response"]["profiles"][0]["first_name"]} {conversationMessage["response"]["profiles"][0]["last_name"]}' if "profiles" in conversationMessage["response"] else conversationMessage["response"]["groups"][0]["name"]
-            args = self.obj["text"].lower().split()
-            if (args and args[0] in self.names) or self.peer_id < 2000000000 or self.cmd:
-                msg = f"[{self.__name}]: сообщение от [id{self.from_id}|{self.name}]({self.peer_id}): {self.text}"
-                print(msg)
-                if self.log_chat:
-                    self.send(msg, peer_id=self.log_chat)
-            if self.cmd:
-                try:
-                    self.cmds[self.cmd](self)  # вызов команды TODO если команда возращает текст, то отправть его (поддержка многих ядер различных ботов (вк, дискорд, телеграм и т.д.) одной командой)
-                except Exception as error:
-                    if self.error_chat:
-                        self.send(f"[{self.__name}]: ошибка при выполнение команды {self.cmd}: {error}", peer_id=self.error_chat)
-                    print(f"[ERROR] [{self.__name}]: ошибка при выполнение команды {self.cmd}: {error}")
-                    self.send(f"Ошибка при выполнение команды")
-            elif (("" not in self.names) and self.names) or (("" in self.names or not self.names) and self.peer_id == self.group_id):  # можно без обращения и это лс
-                try:
-                    self.cmd_not_found()  # вызов функции
-                except Exception as error:
-                    if self.error_chat:
-                        self.send(f"[{self.__name}]: ошибка при выполнение cmd_not_found: {error}", peer_id=self.error_chat)
-                    print(f"[ERROR] [{self.__name}]: ошибка при выполнение cmd_not_found: {error}")
-                    self.send(f"Ошибка при попытке ответа")
-            else:
-                pass  # Если это просто сообщение
+                    self.text = " ".join(self.obj["message"]["text"].split()[1:])  # текст соообщения без обращения и команды
+                else:
+                    self.text = self.obj["message"]["text"]  # текст соообщения без команды и обращения
+            conversationMessage = self.messages.getByConversationMessageId(peer_id=self.obj["message"]["peer_id"], conversation_message_ids=self.obj["message"]["conversation_message_id"], extended=1)  # Получаем всю инфу по сообщению
+            if conversationMessage["response"]["count"] != 0:
+                self.default_params = self.default_params
+                self.from_id = self.obj["message"]["from_id"]
+                self.id = conversationMessage["response"]["items"][0]["id"]
+                self.fwd = self.obj["message"]["reply_message"] if "reply_message" in self.obj["message"] else self.obj["message"]["fwd_messages"]
+                self.attachments = self.obj["message"]["attachments"]
+                self.photo = conversationMessage["response"]["profiles"][0]["photo_100"] if "profiles" in conversationMessage["response"] else conversationMessage["response"]["groups"][0]["photo_100"]
+                self.name = f'{conversationMessage["response"]["profiles"][0]["first_name"]} {conversationMessage["response"]["profiles"][0]["last_name"]}' if "profiles" in conversationMessage["response"] else conversationMessage["response"]["groups"][0]["name"]
+                args = self.obj["message"]["text"].lower().split()
+                if (args and args[0] in self.names) or self.peer_id < 2000000000 or self.cmd:
+                    msg = f"[{self._name}]: сообщение от [id{self.from_id}|{self.name}]({self.peer_id}): {self.obj['message']['text']}"
+                    print(msg)
+                    if self.log_chat:
+                        self.send(msg, peer_id=self.log_chat)
+                if self.cmd:
+                    try:
+                        self.cmds[self.cmd](self)  # вызов команды
+                    except Exception as error:
+                        if self.error_chat:
+                            self.send(f"[{self._name}]: ошибка при выполнение команды {self.cmd}: {error}", peer_id=self.error_chat)
+                        print(f"[ERROR] [{self._name}]: ошибка при выполнение команды {self.cmd}: {error}")
+                        self.send(f"Ошибка при выполнение команды")
+                elif (args[0] in self.names) or (self.peer_id == self.from_id):  # если это не команда и обращались к боту, то вызвать cmd_not_found
+                    try:
+                        self.cmd_not_found()  # вызов функции
+                    except Exception as error:
+                        if self.error_chat:
+                            self.send(f"[{self._name}]: ошибка при выполнение cmd_not_found: {error}", peer_id=self.error_chat)
+                        print(f"[ERROR] [{self._name}]: ошибка при выполнение cmd_not_found: {error}")
+                        self.send(f"Ошибка при попытке ответа")
+                else:
+                    pass  # Если это просто сообщение
 
     def cmd_not_found(self):
         self.send("Команда не найдена")
@@ -200,6 +212,7 @@ class VkAPI:
         if "response" in result:
             return result
         elif "error" in result:
+            print(result)
             raise ValueError(result["error"]["error_msg"])
 
 # Вынесено сюда как дополнительная помента о всех эвентах, которые на время написания данного ядра бота Vk

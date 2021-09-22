@@ -5,6 +5,7 @@ from threading import Thread
 from core.cores import *
 from core.updater import UpdaterHandler
 from watchdog.observers import Observer
+# PIP_TARGET=/path/to/pip/dir - переменная среды
 
 
 def get_bots():

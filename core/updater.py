@@ -10,14 +10,14 @@ class UpdaterHandler(FileSystemEventHandler):
     def __init__(self, bot, plugins_path="plugins", time_to_check_update=1):
         self.bot = bot
         self.file_updater = {}
-        # TODO первоночальная загрузка эвентов
         res = [[], [], [], [], [], []]
         files = [f for f in listdir(plugins_path) if isfile(join(plugins_path, f))]
         for file in files:
             added = self.bot._add_plugin(join(plugins_path, file))
             for i, add in enumerate(added):
-                res[i] += add
-        print(f"[{self.bot.name}] информация о импорте:\n{self.__gen_text(*res)}")
+                if add:
+                    res[i] += add
+        print(f"[{self.bot._name}] информация о импорте:\n{self.__gen_text(*res)}")
         updater = Thread(target=self.__updater, args=[time_to_check_update])
         updater.start()
 
@@ -39,8 +39,8 @@ class UpdaterHandler(FileSystemEventHandler):
                 if src[-1:] != "~" and self.file_updater[src] + time_to_check_update < int(
                         time.time()):  # Странно почему начало добавляеть ~
                     del self.file_updater[src]
-                    print(f"[{self.bot.name}]: информация о импорте:\n{self.__gen_text(*self.bot._add_plugin(src))}")
-                    print(f'[{self.bot.name}]: изменен файл "{src}"')
+                    print(f"[{self.bot._name}]: информация о импорте:\n{self.__gen_text(*self.bot._add_plugin(src))}")
+                    print(f'[{self.bot._name}]: изменен файл "{src}"')
             time.sleep(time_to_check_update / 4)
 
     @staticmethod

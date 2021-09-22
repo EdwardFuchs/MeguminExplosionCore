@@ -1,10 +1,9 @@
 import sys
 from typing import List, Any
 
-
 class Bot:
     def __init__(self, name):
-        self.name = name
+        self._name = name
         self.cmds = {}  # список команд с привязкой
         self.events = {}  # список эвенов с привязкой
         self.imported = {}  # список всех заимпортированных файлов и храняшихся в нем эвентов и комманд
@@ -31,7 +30,7 @@ class Bot:
         except Exception as e:  # TODO чат с ошибками
             msg = f"Exception: Не получилось импортиовать файл {path} с ошибкой {e}"
             print(msg)
-        return 0, 0, 0, 0, 0, 0
+        return None, None, None, None, None, None
 
     def _del_plugin(self, path):  # Для использования в плагинах опытными пользователями
         path_to_import = self.__reformat_path(path)
