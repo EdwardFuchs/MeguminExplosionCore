@@ -1,3 +1,8 @@
+![](https://img.shields.io/github/pipenv/locked/python-version/EdwardFuchs/MeguminExplosionCore) 
+![](https://img.shields.io/badge/license-MIT-533849?style=flat&logo=appveyor) 
+![](https://badges.pufler.dev/visits/{EdwardFuchs}/{MeguminExplosionCore}) 
+
+
 # MeguminExplosionCore
 Ядро для создания ботов
 
