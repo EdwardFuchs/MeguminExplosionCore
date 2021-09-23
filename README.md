@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/EdwardFuchs/EdwardFuchs/main/logo_MEC.svg" /></p>
+
 ![](https://img.shields.io/github/pipenv/locked/python-version/EdwardFuchs/MeguminExplosionCore)
 ![](https://img.shields.io/github/license/EdwardFuchs/MeguminExplosionCore)
 ![](https://img.shields.io/github/pipenv/locked/dependency-version/EdwardFuchs/MeguminExplosionCore/watchdog)
@@ -8,8 +10,6 @@
 ![](https://img.shields.io/github/commit-activity/m/EdwardFuchs/MeguminExplosionCore)
 ![](https://img.shields.io/github/last-commit/EdwardFuchs/MeguminExplosionCore)
 
-
-# MeguminExplosionCore
 Ядро для для создания модульных ботов для различных сервисов с автоматическим обновлением модулей и поддержкой дополнительных моодулей через PyPi
 
 ### TODOList
