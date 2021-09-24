@@ -1,4 +1,4 @@
-<p align="center"><img src="https://raw.githubusercontent.com/EdwardFuchs/EdwardFuchs/main/logo_MEC.svg" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/EdwardFuchs/EdwardFuchs/main/logo_MEC_2.svg" /></p>
 
 ![](https://img.shields.io/github/pipenv/locked/python-version/EdwardFuchs/MeguminExplosionCore)
 ![](https://img.shields.io/github/license/EdwardFuchs/MeguminExplosionCore)
