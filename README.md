@@ -2,7 +2,6 @@
 
 ![](https://img.shields.io/github/pipenv/locked/python-version/EdwardFuchs/MeguminExplosionCore)
 ![](https://img.shields.io/github/license/EdwardFuchs/MeguminExplosionCore)
-![](https://img.shields.io/github/pipenv/locked/dependency-version/EdwardFuchs/MeguminExplosionCore/watchdog)
 ![](https://badges.pufler.dev/visits/EdwardFuchs/MeguminExplosionCore)
 ![](https://img.shields.io/github/repo-size/EdwardFuchs/MeguminExplosionCore)
 ![](https://img.shields.io/tokei/lines/github/EdwardFuchs/MeguminExplosionCore)
@@ -11,6 +10,9 @@
 ![](https://img.shields.io/github/last-commit/EdwardFuchs/MeguminExplosionCore)
 
 Ядро для для создания модульных ботов для различных сервисов с автоматическим обновлением модулей и поддержкой дополнительных моодулей через PyPi
+
+### Packages
+<p><img src="https://img.shields.io/github/pipenv/locked/dependency-version/EdwardFuchs/MeguminExplosionCore/watchdog" /></p>
 
 ### TODOList
 - [X] Пофиксить прокси
