@@ -17,7 +17,7 @@
 Ядро для для создания модульных ботов для различных сервисов с автоматическим обновлением модулей и поддержкой дополнительных моодулей через PyPi
 
 ### Packages
-<p><a href="https://pypi.org/project/watchdog/"><img src="https://img.shields.io/github/pipenv/locked/dependency-version/EdwardFuchs/MeguminExplosionCore/watchdog" /></a></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://pypi.org/project/watchdog/"><img src="https://img.shields.io/github/pipenv/locked/dependency-version/EdwardFuchs/MeguminExplosionCore/watchdog" /></a></p>
 
 ### TODOList
 - [X] Пофиксить прокси
