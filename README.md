@@ -1,5 +1,3 @@
-<p align="center"><img src="https://raw.githubusercontent.com/EdwardFuchs/EdwardFuchs/main/logo_MEC_2.svg" /></p>
-
 ![](https://img.shields.io/github/pipenv/locked/python-version/EdwardFuchs/MeguminExplosionCore)
 ![](https://img.shields.io/github/license/EdwardFuchs/MeguminExplosionCore)
 ![](https://badges.pufler.dev/visits/EdwardFuchs/MeguminExplosionCore)
@@ -8,6 +6,10 @@
 ![](https://img.shields.io/scrutinizer/quality/g/EdwardFuchs/MeguminExplosionCore)
 ![](https://img.shields.io/github/commit-activity/m/EdwardFuchs/MeguminExplosionCore)
 ![](https://img.shields.io/github/last-commit/EdwardFuchs/MeguminExplosionCore)
+
+
+<p align="center"><img src="https://raw.githubusercontent.com/EdwardFuchs/EdwardFuchs/main/logo_MEC_2.svg" /></p>
+
 
 Ядро для для создания модульных ботов для различных сервисов с автоматическим обновлением модулей и поддержкой дополнительных моодулей через PyPi
 
