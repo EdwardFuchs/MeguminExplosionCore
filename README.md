@@ -8,8 +8,11 @@
 ![](https://img.shields.io/github/last-commit/EdwardFuchs/MeguminExplosionCore)
 
 
-<p align="center"><img src="https://raw.githubusercontent.com/EdwardFuchs/EdwardFuchs/main/logo_MEC_2.svg" /></p>
-
+<p align="center">
+  <img src="https://raw.githubusercontent.com/EdwardFuchs/EdwardFuchs/main/original_clear_2.gif" height="200px" width="280px" />
+  <img src="https://raw.githubusercontent.com/EdwardFuchs/EdwardFuchs/main/logo_MEC_2.svg" height="200px" width="280px" />
+  <img src="https://raw.githubusercontent.com/EdwardFuchs/EdwardFuchs/main/original_clear_2.gif" height="200px" width="280px" />
+</p>
 
 Ядро для для создания модульных ботов для различных сервисов с автоматическим обновлением модулей и поддержкой дополнительных моодулей через PyPi
 
