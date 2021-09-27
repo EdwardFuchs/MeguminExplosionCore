@@ -131,14 +131,18 @@ class Vk(Bot):
                     th_update.start()
                     # self.__run_update(update)
 
+    def send_error(self, error, from_error):
+        msg = f"ошибка при выполнении {from_error}: {error}"
+        if self.error_chat:
+            self.send(f"[{self._name}]: {msg}", peer_id=self.error_chat)
+        print(f"[ERROR] [{self._name}]: {msg}: {error}")
+
     def __run_event(self):
-        try:
-            self.events[self.event](self)  # вызов эвента
-        except Exception as error:
-            if self.error_chat:
-                self.send(f"[{self._name}]: ошибка при выполнении эвента {self.event}: {error}",
-                          peer_id=self.error_chat)
-            print(f"[ERROR] [{self._name}]: ошибка при выполнении эвента {self.event}: {error}")
+        if self.event in self.events:
+            try:
+                self.events[self.event](self)  # вызов эвента
+            except Exception as error:
+                self.send_error(error, f"эвента {self.event}")
 
     def __set_cmd_arg_text(self):
         self.cmd = None
@@ -183,19 +187,15 @@ class Vk(Bot):
         try:
             self.cmds[self.cmd](self)  # вызов команды
         except Exception as error:
-            if self.error_chat:
-                self.send(f"[{self._name}]: ошибка при выполнении команды {self.cmd}: {error}", peer_id=self.error_chat)
-            print(f"[ERROR] [{self._name}]: ошибка при выполнении команды {self.cmd}: {error}")
-            self.send(f"Ошибка при выполнение команды")
+            self.send_error(error, f"команды {self.cmd}")
+            self.send(f"Ошибка при выполнение команды, в случае повторных ошибок свяжитесь с администратором")
 
     def __run_cmd_not_found(self):
         try:
             self.cmd_not_found()  # вызов функции
         except Exception as error:
-            if self.error_chat:
-                self.send(f"[{self._name}]: ошибка при выполнении cmd_not_found: {error}", peer_id=self.error_chat)
-            print(f"[ERROR] [{self._name}]: ошибка при выполнении cmd_not_found: {error}")
-            self.send(f"Ошибка при попытке ответа")
+            self.send_error(error, f"cmd_not_found")
+            self.send(f"Ошибка при попытке ответа, в случае повторных ошибок свяжитесь с администратором")
 
     def __event_cmd(self, conversationMessage):
         self.__set_params(conversationMessage)
@@ -210,26 +210,22 @@ class Vk(Bot):
             pass  # Если это просто сообщение
 
     def __new_message(self):
-        self.args = self.obj["message"]["text"].lower().split()  # массив аргументов, приведенных в lower
-        self.__set_cmd_arg_text()
-        conversationMessage = self.messages.getByConversationMessageId(peer_id=self.obj["message"]["peer_id"], conversation_message_ids=self.obj["message"]["conversation_message_id"], extended=1)  # Получаем всю инфу по сообщению
-        if conversationMessage["response"]["count"] != 0:
-            self.__event_cmd(conversationMessage)
+        if self.event == "message_new" and self.obj["message"]["out"] == 0 and self.obj["message"]["from_id"] > 0 and self.obj["message"]["text"]:  # Новое сообщение и оно входящее и от человека
+            self.args = self.obj["message"]["text"].lower().split()  # массив аргументов, приведенных в lower
+            self.__set_cmd_arg_text()
+            conversationMessage = self.messages.getByConversationMessageId(peer_id=self.obj["message"]["peer_id"], conversation_message_ids=self.obj["message"]["conversation_message_id"], extended=1)  # Получаем всю инфу по сообщению
+            if conversationMessage["response"]["count"] != 0:
+                self.__event_cmd(conversationMessage)
 
     def __set_pervious_attr(self, update):
         self.obj = update["object"]
         self.event = update["type"]
         self.peer_id = self.obj["message"]["peer_id"] if (("message" in self.obj) and ("peer_id" in self.obj["message"])) else self.log_chat if self.log_chat else None
 
-    def __processing_update(self):
-        if self.event in self.events:
-            self.__run_event()
-        if self.event == "message_new" and self.obj["message"]["out"] == 0 and self.obj["message"]["from_id"] > 0 and self.obj["message"]["text"]:  # Новое сообщение и оно входящее и от человека
-            self.__new_message()
-
     def __run_update(self, update):
         self.__set_pervious_attr(update)
-        self.__processing_update()
+        self.__run_event()
+        self.__new_message()
 
     def cmd_not_found(self):
         self.send("Команда не найдена")
