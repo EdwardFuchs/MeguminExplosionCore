@@ -63,13 +63,10 @@ class Bot:
                 return True
         return False
 
-    def __reload_plugins(self, path_to_import: str, cmd: dict = None, event: dict = None):  # TODO удалить если пустой cmd или event (если до этого был не пустым)
+    def __reload_cmd(self, path_to_import, cmd):
         add_cmd = []
         update_cmd = []
         deleted_cmd = []
-        add_event = []
-        update_event = []
-        deleted_event = []
         if cmd:
             cmd = self.__to_good_format(cmd)
             for func in cmd.keys():
@@ -81,12 +78,18 @@ class Bot:
                     else:
                         update_cmd.append(com)
                     self.cmds[com] = func
-            deleted_cmd = [item for item in self.imported[path_to_import]["cmds"] if item not in (add_cmd+update_cmd)]
+            deleted_cmd = [item for item in self.imported[path_to_import]["cmds"] if item not in (add_cmd + update_cmd)]
             for com in deleted_cmd:
                 self.imported[path_to_import]["cmds"].remove(com)
                 func = self.cmds.pop(com)  # возвращает функцию
                 if not self.__is_func_used(func):  # если функция нигде не используется то удалить ее
                     del func
+        return add_cmd, update_cmd, deleted_cmd
+
+    def __reload_event(self, path_to_import, event):
+        add_event = []
+        update_event = []
+        deleted_event = []
         if event:
             event = self.__to_good_format(event)
             for func in event.keys():
@@ -98,13 +101,17 @@ class Bot:
                     else:
                         update_event.append(ev)
                     self.events[ev] = func
-            deleted_event = [item for item in self.imported[path_to_import]["events"] if item not in (add_event + update_event)]
+            deleted_event = [item for item in self.imported[path_to_import]["events"] if
+                             item not in (add_event + update_event)]
             for ev in deleted_event:
                 self.imported[path_to_import]["events"].remove(ev)
                 func = self.events.pop(ev)  # возвращает функцию
                 if not self.__is_func_used(func):  # если функция нигде не используется то удалить ее
                     del func
-        return add_cmd, update_cmd, deleted_cmd, add_event, update_event, deleted_event
+        return add_event, update_event, deleted_event
+
+    def __reload_plugins(self, path_to_import: str, cmd: dict = None, event: dict = None):  # TODO удалить если пустой cmd или event (если до этого был не пустым)
+        return self.__reload_cmd(path_to_import, cmd) + self.__reload_event(path_to_import, event)
         # raise ValueError("cmd или event должны быть заданы")
 
     @staticmethod
