@@ -23,23 +23,29 @@ class UpdaterHandler(FileSystemEventHandler):
 
     def on_modified(self, event):
         if not event.is_directory:
-            self.file_updater[event.src_path] = int(time.time())
+            self.file_updater[event.src_path] = {}
+            self.file_updater[event.src_path]["time"] = int(time.time())
+            self.file_updater[event.src_path]["type"] = "modified"
 
     def on_created(self, event):
-        if not event.is_directory:
-            self.file_updater[event.src_path] = int(time.time())
+        self.on_modified(event)
 
-    def on_deleted(self, event):  # TODO удаление плагина и всего его содержимого
+    def on_deleted(self, event):
         if not event.is_directory:
-            self.file_updater[event.src_path] = int(time.time())
+            self.file_updater[event.src_path] = {}
+            self.file_updater[event.src_path]["time"] = int(time.time())
+            self.file_updater[event.src_path]["type"] = "deleted"
 
     def __updater(self, time_to_check_update):
         while True:
             for src in list(self.file_updater):
-                if src[-1:] != "~" and self.file_updater[src] + time_to_check_update < int(
-                        time.time()):  # Странно почему начало добавляеть ~
+                if src[-1:] != "~" and self.file_updater[src]["time"] + time_to_check_update < int(time.time()):  # Странно почему начало добавляеть ~
+                    if self.file_updater[src]["type"] == "modified":
+                        add = self.__gen_text(*self.bot._add_plugin(src))
+                    else:
+                        add = self.__gen_text(*self.bot._del_plugin(src))
                     del self.file_updater[src]
-                    print(f"[{self.bot._name}]: информация о импорте:\n{self.__gen_text(*self.bot._add_plugin(src))}")
+                    print(f"[{self.bot._name}]: информация о импорте:\n{add}")
                     print(f'[{self.bot._name}]: изменен файл "{src}"')
             time.sleep(time_to_check_update / 4)
 

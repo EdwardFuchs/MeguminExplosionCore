@@ -34,13 +34,17 @@ class Bot:
 
     def _del_plugin(self, path):  # Для использования в плагинах опытными пользователями
         path_to_import = self.__reformat_path(path)
+        cmds = self.imported[path_to_import]["cmds"]
+        events = self.imported[path_to_import]["events"]
+        if path_to_import in self.imported:
+            for cmd in self.imported[path_to_import]["cmds"]:
+                del self.cmds[cmd]
+            for event in self.imported[path_to_import]["events"]:
+                del self.events[event]
+            del self.imported[path_to_import]
         if path_to_import in sys.modules:
             sys.modules.pop(path_to_import)
-            msg = f"Модуль {path} удален"
-            return msg
-        else:
-            msg = f"Модуль {path} не найден"
-            return msg
+        return None, None, cmds, None, None, events
 
     @staticmethod
     def __reformat_path(path):
