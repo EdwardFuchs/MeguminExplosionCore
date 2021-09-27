@@ -131,7 +131,7 @@ class Vk(Bot):
                     th_update.start()
                     # self.__run_update(update)
 
-    def run_event(self):
+    def __run_event(self):
         try:
             self.events[self.event](self)  # вызов эвента
         except Exception as error:
@@ -140,7 +140,7 @@ class Vk(Bot):
                           peer_id=self.error_chat)
             print(f"[ERROR] [{self._name}]: ошибка при выполнении эвента {self.event}: {error}")
 
-    def set_cmd_arg_text(self):
+    def __set_cmd_arg_text(self):
         self.cmd = None
         if self.args[0] in self.names:
             if len(self.args) > 1 and self.args[1] in self.cmds:
@@ -161,7 +161,7 @@ class Vk(Bot):
             else:
                 self.text = self.obj["message"]["text"]  # текст соообщения без команды и обращения
 
-    def set_params(self, conversationMessage: dict):
+    def __set_params(self, conversationMessage: dict):
         self.default_params = self.default_params
         self.from_id = self.obj["message"]["from_id"]
         self.id = conversationMessage["response"]["items"][0]["id"]
@@ -172,14 +172,14 @@ class Vk(Bot):
             "response"] else conversationMessage["response"]["groups"][0]["photo_100"]
         self.name = f'{conversationMessage["response"]["profiles"][0]["first_name"]} {conversationMessage["response"]["profiles"][0]["last_name"]}' if "profiles" in conversationMessage["response"] else conversationMessage["response"]["groups"][0]["name"]
 
-    def send_log(self, args):
+    def __send_log(self, args):
         if (args and args[0] in self.names) or self.peer_id < 2000000000 or self.cmd:
             msg = f"[{self._name}]: сообщение от [id{self.from_id}|{self.name}]({self.peer_id}): {self.obj['message']['text']}"
             print(msg)
             if self.log_chat:
                 self.send(msg, peer_id=self.log_chat)
 
-    def run_cmd(self):
+    def __run_cmd(self):
         try:
             self.cmds[self.cmd](self)  # вызов команды
         except Exception as error:
@@ -188,7 +188,7 @@ class Vk(Bot):
             print(f"[ERROR] [{self._name}]: ошибка при выполнении команды {self.cmd}: {error}")
             self.send(f"Ошибка при выполнение команды")
 
-    def run_cmd_not_found(self):
+    def __run_cmd_not_found(self):
         try:
             self.cmd_not_found()  # вызов функции
         except Exception as error:
@@ -197,26 +197,33 @@ class Vk(Bot):
             print(f"[ERROR] [{self._name}]: ошибка при выполнении cmd_not_found: {error}")
             self.send(f"Ошибка при попытке ответа")
 
+    def __event_cmd(self, conversationMessage):
+        self.__set_params(conversationMessage)
+        args = self.obj["message"]["text"].lower().split()
+        self.__send_log(args)
+        if self.cmd:
+            self.__run_cmd()
+        elif (args[0] in self.names) or (
+                self.peer_id == self.from_id):  # если это не команда и обращались к боту, то вызвать cmd_not_found
+            self.__run_cmd_not_found()
+        else:
+            pass  # Если это просто сообщение
+
+    def __new_message(self):
+        self.args = self.obj["message"]["text"].lower().split()  # массив аргументов, приведенных в lower
+        self.__set_cmd_arg_text()
+        conversationMessage = self.messages.getByConversationMessageId(peer_id=self.obj["message"]["peer_id"], conversation_message_ids=self.obj["message"]["conversation_message_id"], extended=1)  # Получаем всю инфу по сообщению
+        if conversationMessage["response"]["count"] != 0:
+            self.__event_cmd(conversationMessage)
+
     def __run_update(self, update):
         self.obj = update["object"]
         self.event = update["type"]
         self.peer_id = self.obj["message"]["peer_id"] if (("message" in self.obj) and ("peer_id" in self.obj["message"])) else self.log_chat if self.log_chat else None
         if self.event in self.events:
-            self.run_event()
+            self.__run_event()
         if self.event == "message_new" and self.obj["message"]["out"] == 0 and self.obj["message"]["from_id"] > 0 and self.obj["message"]["text"]:  # Новое сообщение и оно входящее и от человека
-            self.args = self.obj["message"]["text"].lower().split()   # массив аргументов, приведенных в lower
-            self.set_cmd_arg_text()
-            conversationMessage = self.messages.getByConversationMessageId(peer_id=self.obj["message"]["peer_id"], conversation_message_ids=self.obj["message"]["conversation_message_id"], extended=1)  # Получаем всю инфу по сообщению
-            if conversationMessage["response"]["count"] != 0:
-                self.set_params(conversationMessage)
-                args = self.obj["message"]["text"].lower().split()
-                self.send_log(args)
-                if self.cmd:
-                    self.run_cmd()
-                elif (args[0] in self.names) or (self.peer_id == self.from_id):  # если это не команда и обращались к боту, то вызвать cmd_not_found
-                    self.run_cmd_not_found()
-                else:
-                    pass  # Если это просто сообщение
+            self.__new_message()
 
     def cmd_not_found(self):
         self.send("Команда не найдена")
