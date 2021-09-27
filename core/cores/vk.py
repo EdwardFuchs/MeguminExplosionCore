@@ -216,14 +216,20 @@ class Vk(Bot):
         if conversationMessage["response"]["count"] != 0:
             self.__event_cmd(conversationMessage)
 
-    def __run_update(self, update):
+    def __set_pervious_attr(self, update):
         self.obj = update["object"]
         self.event = update["type"]
         self.peer_id = self.obj["message"]["peer_id"] if (("message" in self.obj) and ("peer_id" in self.obj["message"])) else self.log_chat if self.log_chat else None
+
+    def __processing_update(self):
         if self.event in self.events:
             self.__run_event()
         if self.event == "message_new" and self.obj["message"]["out"] == 0 and self.obj["message"]["from_id"] > 0 and self.obj["message"]["text"]:  # Новое сообщение и оно входящее и от человека
             self.__new_message()
+
+    def __run_update(self, update):
+        self.__set_pervious_attr(update)
+        self.__processing_update()
 
     def cmd_not_found(self):
         self.send("Команда не найдена")
