@@ -27,10 +27,9 @@ class Bot:
             if path_to_import not in self.imported:
                 self.imported[path_to_import] = {"cmds": [], "events": []}
             return self.__reload_plugins(path_to_import=path_to_import, cmd=cmd, event=event)
-        except Exception as e:  # TODO чат с ошибками
-            msg = f"Exception: Не получилось импортиовать файл {path} с ошибкой {e}"
-            print(msg)
-        return None, None, None, None, None, None
+        except Exception as error:  # TODO чат с ошибками
+            self.send_error(error, f"импортирования файла {path}")
+            return self._del_plugin(path)
 
     def _del_plugin(self, path):  # Для использования в плагинах опытными пользователями
         path_to_import = self.__reformat_path(path)
@@ -45,6 +44,10 @@ class Bot:
         if path_to_import in sys.modules:
             sys.modules.pop(path_to_import)
         return None, None, cmds, None, None, events
+
+    def send_error(self, error, from_error):
+        msg = f"ошибка при выполнении {from_error}: {error}"
+        print(f"[ERROR] [{self._name}]: {msg}")
 
     @staticmethod
     def __reformat_path(path):
