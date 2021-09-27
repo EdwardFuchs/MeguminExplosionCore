@@ -72,6 +72,47 @@ class Vk(Bot):
         th = Thread(target=self.run, daemon=False, name=self._name)
         th.start()
 
+    def __bot_started(self):
+        if platform == 'linux':
+            print(f"Бот \"{self._name}\" запущен. Его pid = {getpid()}\nДля отключения OOM Killer напишите: sudo echo -17 > /proc/{getpid()}/oom_adj")
+        else:
+            print(f"Бот \"{self._name}\" успешно запущен!")
+
+
+    def __failed_response(self, response):
+        fail = response["failed"]
+        if fail == 1:
+            print(f"[{self._name}] история событий устарела. Обновление ts")
+            self.ts = response['ts']
+        elif fail == 2:
+            print(f"[{self._name}] истекло время действия ключа. Обновление LP")
+            self.getLongPollServer()
+        elif fail == 3:
+            print(f"[{self._name}] информация устарела. Обновление LP")
+            self.getLongPollServer()
+        else:
+            fail = -1
+            print(f"[{self._name}] неизвестная ошибка LP. Обновление LP")
+            self.getLongPollServer()
+
+    def __get_response(self):
+        fail = 0
+        url = f'{self.server}?act=a_check&key={self.key}&ts={self.ts}&wait={self.wait}'
+        response = None
+        try:
+            response = get(url, proxies=self.proxy).json()
+            if "failed" in response:
+                self.__failed_response(response)
+            else:
+                self.ts = response['ts']
+        except JSONDecodeError:
+            fail = -1
+            print(f"[{self._name}] Vk LP response was not received in JSON format")
+            self.getLongPollServer()
+        except ConnectionError as e:
+            print(f"[{self._name}] {e}")
+        return fail, response
+
     # TODO сделать для пользователя https://vk.com/dev/using_longpoll
     def run(self):
         self.getLongPollServer()  # получаем сервер LP и данные к нему
@@ -80,39 +121,9 @@ class Vk(Bot):
             response = get(url, proxies=self.proxy).json()
         except JSONDecodeError:
             raise ValueError(f"[{self._name}] Vk LP response was not received in JSON format")
-        if platform == 'linux':
-            print(
-                f"Бот \"{self._name}\" запущен. Его pid = {getpid()}\nДля отключения OOM Killer напишите: sudo echo -17 > /proc/{getpid()}/oom_adj")
-        else:
-            print(f"Бот \"{self._name}\" успешно запущен!")
+        self.__bot_started()
         while True:
-            fail = 0
-            try:
-                url = f'{self.server}?act=a_check&key={self.key}&ts={self.ts}&wait={self.wait}'
-                response = get(url, proxies=self.proxy).json()
-                if "failed" in response:
-                    fail = response["failed"]
-                    if fail == 1:
-                        print(f"[{self._name}] история событий устарела. Обновление ts")
-                        self.ts = response['ts']
-                    elif fail == 2:
-                        print(f"[{self._name}] истекло время действия ключа. Обновление LP")
-                        self.getLongPollServer()
-                    elif fail == 3:
-                        print(f"[{self._name}] информация устарела. Обновление LP")
-                        self.getLongPollServer()
-                    else:
-                        fail = -1
-                        print(f"[{self._name}] неизвестная ошибка LP. Обновление LP")
-                        self.getLongPollServer()
-                else:
-                    self.ts = response['ts']
-            except JSONDecodeError:
-                fail = -1
-                print(f"[{self._name}] Vk LP response was not received in JSON format")
-                self.getLongPollServer()
-            except ConnectionError as e:
-                print(f"[{self._name}] {e}")
+            fail, response = self.__get_response()
             if fail == 0:  # если нет ошибок
                 updates = response['updates']  # получение всех обновлений
                 for update in updates:  # получение каждого обновления за данный периуд
