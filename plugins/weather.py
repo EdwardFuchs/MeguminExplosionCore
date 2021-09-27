@@ -120,11 +120,11 @@ def vk_upload_photo(bot, file):
     return f'photo{ret["owner_id"]}_{ret["id"]}'
 
 
-def weather(bot):
+def get_city(bot):
     if not bot.text:
         if bot.event == "message_new":
             try:
-                city = bot.users.get(user_ids=bot.from_id, fields="city, country")["response"][0]["city"]["title"]
+                return bot.users.get(user_ids=bot.from_id, fields="city, country")["response"][0]["city"]["title"]
             except:
                 bot.send("Ошибка! В команде нужно указывать город или открыть в информации профиля.")
                 return
@@ -132,21 +132,27 @@ def weather(bot):
             bot.send("Ошибка! В команде нужно указывать город.")
             return
     else:
-        city = bot.text
+        return bot.text
+
+
+def use_grapgic(bot, city, country, icon, temp, temp_min, temp_max, utc):
+    file = with_graphic(bot, city, country, icon, temp, temp_min, temp_max, utc)
+    if bot.event == "message_new":
+        try:
+            attachment = vk_upload_photo(bot, file)
+            bot.send("", attachment=attachment)
+        except Exception as e:
+            bot.send(f"[ERROR] [{bot._name}]: {e}", peer_id=bot.error_chat)
+            bot.send("", attachment="photo-169151978_457733782")
+    else:
+        bot.send(f"[{bot._name}]: Нет нужного эвента для загрузки фото")
+    file.close()
+
+def weather(bot):
+    city = get_city(bot)
     city, country, icon, temp, temp_min, temp_max, utc, weather_desc, wind_speed, clouds, humidity, time_update = get_weather(city)
     if use_graphic:
-            file = with_graphic(bot, city, country, icon, temp, temp_min, temp_max, utc)
-            if bot.event == "message_new":
-                try:
-                    attachment = vk_upload_photo(bot, file)
-                    bot.send("", attachment=attachment)
-                except Exception as e:
-                    print(e)
-                    bot.send(f"[ERROR] [{bot._name}]: {e}", peer_id=bot.error_chat)
-                    bot.send("", attachment="photo-169151978_457733782")
-            else:
-                bot.send(f"[{bot._name}]: Нет нужного эвента для загрузки фото")
-            file.close()
+        use_grapgic(bot, city, country, icon, temp, temp_min, temp_max, utc)
     else:
         res = without_graphic(city, country, temp, utc, weather_desc, wind_speed, clouds, humidity, time_update)
         bot.send(res)
