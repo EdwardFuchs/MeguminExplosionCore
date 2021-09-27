@@ -44,30 +44,33 @@ class UpdaterHandler(FileSystemEventHandler):
             time.sleep(time_to_check_update / 4)
 
     @staticmethod
-    def __gen_text(add_cmd, update_cmd, deleted_cmd, add_event, update_event, deleted_event):
+    def __gen_text_cmd(*args):
         res = []
-        add_cmd_text = "команда" if len(add_cmd) > 1 else "команды"
-        update_cmd_text = "команда" if len(update_cmd) > 1 else "команды"
-        deleted_cmd_text = "команда" if len(deleted_cmd) > 1 else "команды"
-        add_event_text = "эвент" if len(add_event) > 1 else "эвенты"
-        update_event_text = "эвент" if len(update_event) > 1 else "эвенты"
-        deleted_event_text = "эвент" if len(deleted_event) > 1 else "эвенты"
-        if add_cmd:
-            add_cmd = ", ".join(add_cmd)
-            res.append(f"Добавлены {add_cmd_text}: {add_cmd}")
-        if update_cmd:
-            update_cmd = ", ".join(update_cmd)
-            res.append(f"Добавлены {update_cmd_text}: {update_cmd}")
-        if deleted_cmd:
-            deleted_cmd = ", ".join(deleted_cmd)
-            res.append(f"Добавлены {deleted_cmd_text}: {deleted_cmd}")
-        if add_event:
-            add_event = ", ".join(add_event)
-            res.append(f"Добавлены {add_event_text}: {add_event}")
-        if update_event:
-            update_event = ", ".join(update_event)
-            res.append(f"Добавлены {update_event_text}: {update_event}")
-        if deleted_event:
-            deleted_event = ", ".join(deleted_event)
-            res.append(f"Добавлены {deleted_event_text}: {deleted_event}")
+        updates = {
+            "0": ["Добавлена", "Обновлена", "Удалена", "команда"],
+            "1": ["Добавлены", "Обновлены", "Удалены", "команды"]
+        }
+        for i, arg in enumerate(args):
+            if arg:
+                multi = "1" if len(arg) > 1 else "0"
+                res.append(f"{updates[multi][i]} {updates[multi][-1]}: {', '.join(arg)}")
+        return res
+
+    @staticmethod
+    def __gen_text_event(*args):
+        res = []
+        updates = {
+            "0": ["Добавлен", "Обновлен", "Удален", "эвент"],
+            "1": ["Добавлены", "Обновлены", "Удалены", "эвент"]
+        }
+        for i, arg in enumerate(args):
+            if arg:
+                multi = "1" if len(arg) > 1 else "0"
+                res.append(f"{updates[multi][i]} {updates[multi][-1]}: {', '.join(arg)}")
+        return res
+
+    def __gen_text(self, *args):
+        res = []
+        res += self.__gen_text_cmd(*args[:3])
+        res += self.__gen_text_event(*args[3:])
         return "\n".join(res)
