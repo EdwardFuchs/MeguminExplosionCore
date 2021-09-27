@@ -46,40 +46,28 @@ class UpdaterHandler(FileSystemEventHandler):
     @staticmethod
     def __gen_text(add_cmd, update_cmd, deleted_cmd, add_event, update_event, deleted_event):
         res = []
+        add_cmd_text = "команда" if len(add_cmd) > 1 else "команды"
+        update_cmd_text = "команда" if len(update_cmd) > 1 else "команды"
+        deleted_cmd_text = "команда" if len(deleted_cmd) > 1 else "команды"
+        add_event_text = "эвент" if len(add_event) > 1 else "эвенты"
+        update_event_text = "эвент" if len(update_event) > 1 else "эвенты"
+        deleted_event_text = "эвент" if len(deleted_event) > 1 else "эвенты"
         if add_cmd:
-            if len(add_cmd) == 1:
-                res.append(f"Добавлена команда: {add_cmd[0]}")
-            else:
-                add_cmd = ", ".join(add_cmd)
-                res.append(f"Добавлены команды: {add_cmd}")
+            add_cmd = ", ".join(add_cmd)
+            res.append(f"Добавлены {add_cmd_text}: {add_cmd}")
         if update_cmd:
-            if len(update_cmd) == 1:
-                res.append(f"Обновлена команда: {update_cmd[0]}")
-            else:
-                update_cmd = ", ".join(update_cmd)
-                res.append(f"Обновлены команды: {update_cmd}")
+            update_cmd = ", ".join(update_cmd)
+            res.append(f"Добавлены {update_cmd_text}: {update_cmd}")
         if deleted_cmd:
-            if len(deleted_cmd) == 1:
-                res.append(f"Удалена команда: {deleted_cmd[0]}")
-            else:
-                deleted_cmd = ", ".join(deleted_cmd)
-                res.append(f"Удалены команды: {deleted_cmd}")
+            deleted_cmd = ", ".join(deleted_cmd)
+            res.append(f"Добавлены {deleted_cmd_text}: {deleted_cmd}")
         if add_event:
-            if len(add_event) == 1:
-                res.append(f"Добавлен эвент: {add_event[0]}")
-            else:
-                add_event = ", ".join(add_event)
-                res.append(f"Добавлены эвенты: {add_event}")
+            add_event = ", ".join(add_event)
+            res.append(f"Добавлены {add_event_text}: {add_event}")
         if update_event:
-            if len(update_event) == 1:
-                res.append(f"Обновлен эвент: {update_event[0]}")
-            else:
-                update_event = ", ".join(update_event)
-                res.append(f"Обновлены эвенты: {update_event}")
+            update_event = ", ".join(update_event)
+            res.append(f"Добавлены {update_event_text}: {update_event}")
         if deleted_event:
-            if len(deleted_event) == 1:
-                res.append(f"Удален эвент: {deleted_event[0]}")
-            else:
-                deleted_event = ", ".join(deleted_event)
-                res.append(f"Удалены эвенты: {deleted_event}")
+            deleted_event = ", ".join(deleted_event)
+            res.append(f"Добавлены {deleted_event_text}: {deleted_event}")
         return "\n".join(res)
