@@ -130,3 +130,5 @@ test/
 test/*
 files/
 docs/
+MyTODO.txt
+setup.cfg

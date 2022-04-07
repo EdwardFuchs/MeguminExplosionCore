@@ -1,4 +1,4 @@
-from core.botcore import Bot
+from core.botcore import BotCore
 from requests import post, get
 from random import randint
 from json.decoder import JSONDecodeError
@@ -9,16 +9,20 @@ from requests.exceptions import ConnectionError
 
 # print("import")
 api_url = "https://api.vk.com/method/"  # url для доступа к вк апи
-headers = {'User-Agent': 'KateMobileAndroid/56 lite-460 (Android 4.4.2; SDK 19; x86; unknown Android SDK built for x86; en)'}  # headers для работы методов audio (при использовании нужного ключа)
+headers = {
+    'User-Agent': 'KateMobileAndroid/56 lite-460 (Android 4.4.2; SDK 19; x86; unknown Android SDK built for x86; en)'}  # headers для работы методов audio (при использовании нужного ключа)
 
-class Vk(Bot):
+
+class Bot(BotCore):
     def __init__(self, name, config):
         # print(f"Инициализация бота {name}")
         super().__init__(name)
         self.default_params = {"v": "5.131",  # Версия апи вк
                                "access_token": config["token"],  # токен группы
-                               "disable_mentions": 1,  # флаг отключить уведомление об упоминании в сообщении, может принимать значения 1 или 0
-                               "dont_parse_links": 1,  # флаг отключить регестрирование ссылок об упоминании в сообщении, может принимать значения 1 или 0
+                               "disable_mentions": 1,
+                               # флаг отключить уведомление об упоминании в сообщении, может принимать значения 1 или 0
+                               "dont_parse_links": 1,
+                               # флаг отключить регестрирование ссылок об упоминании в сообщении, может принимать значения 1 или 0
                                }
         if config["proxy"]:
             self.proxy = {
@@ -37,7 +41,8 @@ class Vk(Bot):
         self.key = None  # секретный ключ сессии
         self.server = None  # адрес сервера
         self.ts = None  # номер последнего события, начиная с которого нужно получать данные
-        self.wait = config["vk_wait"]  # время ожидания (так как некоторые прокси-серверы обрывают соединение после 30 секунд, мы рекомендуем указывать wait=25). Максимальное значение — 90.
+        self.wait = config[
+            "vk_wait"]  # время ожидания (так как некоторые прокси-серверы обрывают соединение после 30 секунд, мы рекомендуем указывать wait=25). Максимальное значение — 90.
         # print(f"Инициализация бота {name} закончена")
 
     def __getattr__(self, method_name):
@@ -55,7 +60,8 @@ class Vk(Bot):
     def send(self, text, **params):
         if "random_id" not in params:
             params["random_id"] = randint(-2147483648, 2147483647)
-        send_to_types = ["user_id", "peer_id", "peer_ids", "domain", "chat_id", "reply_to"]  # аргументы используемые для отпарви сообщения
+        send_to_types = ["user_id", "peer_id", "peer_ids", "domain", "chat_id",
+                         "reply_to"]  # аргументы используемые для отпарви сообщения
         if not any(x in send_to_types for x in params):  # Если в send не нужен другой получатель (основная функция)
             if self.peed_id:
                 return self.messages.send(message=text, peer_id=self.peer_id, **params)
@@ -74,10 +80,10 @@ class Vk(Bot):
 
     def __bot_started(self):
         if platform == 'linux':
-            print(f"Бот \"{self._name}\" запущен. Его pid = {getpid()}\nДля отключения OOM Killer напишите: sudo echo -17 > /proc/{getpid()}/oom_adj")
+            print(
+                f"Бот \"{self._name}\" запущен. Его pid = {getpid()}\nДля отключения OOM Killer напишите: sudo echo -17 > /proc/{getpid()}/oom_adj")
         else:
             print(f"Бот \"{self._name}\" успешно запущен!")
-
 
     def __failed_response(self, response):
         fail = response["failed"]
@@ -127,7 +133,8 @@ class Vk(Bot):
             if fail == 0:  # если нет ошибок
                 updates = response['updates']  # получение всех обновлений
                 for update in updates:  # получение каждого обновления за данный периуд
-                    th_update = Thread(target=self.__run_update(update), daemon=False, name=f"{self._name}_{self.ts}")  # требуется проверить на больших нагрузках
+                    th_update = Thread(target=self.__run_update(update), daemon=False,
+                                       name=f"{self._name}_{self.ts}")  # требуется проверить на больших нагрузках
                     th_update.start()
                     # self.__run_update(update)
 
@@ -170,11 +177,14 @@ class Vk(Bot):
         self.from_id = self.obj["message"]["from_id"]
         self.id = conversationMessage["response"]["items"][0]["id"]
         self.fwd = self.obj["message"]["reply_message"] if "reply_message" in self.obj["message"] else \
-        self.obj["message"]["fwd_messages"]
+            self.obj["message"]["fwd_messages"]
         self.attachments = self.obj["message"]["attachments"]
         self.photo = conversationMessage["response"]["profiles"][0]["photo_100"] if "profiles" in conversationMessage[
             "response"] else conversationMessage["response"]["groups"][0]["photo_100"]
-        self.name = f'{conversationMessage["response"]["profiles"][0]["first_name"]} {conversationMessage["response"]["profiles"][0]["last_name"]}' if "profiles" in conversationMessage["response"] else conversationMessage["response"]["groups"][0]["name"]
+        self.name = f'{conversationMessage["response"]["profiles"][0]["first_name"]} {conversationMessage["response"]["profiles"][0]["last_name"]}' if "profiles" in \
+                                                                                                                                                       conversationMessage[
+                                                                                                                                                           "response"] else \
+        conversationMessage["response"]["groups"][0]["name"]
 
     def __send_log(self, args):
         if (args and args[0] in self.names) or self.peer_id < 2000000000 or self.cmd:
@@ -210,17 +220,22 @@ class Vk(Bot):
             pass  # Если это просто сообщение
 
     def __new_message(self):
-        if self.event == "message_new" and self.obj["message"]["out"] == 0 and self.obj["message"]["from_id"] > 0 and self.obj["message"]["text"]:  # Новое сообщение и оно входящее и от человека
+        if self.event == "message_new" and self.obj["message"]["out"] == 0 and self.obj["message"]["from_id"] > 0 and \
+                self.obj["message"]["text"]:  # Новое сообщение и оно входящее и от человека
             self.args = self.obj["message"]["text"].lower().split()  # массив аргументов, приведенных в lower
             self.__set_cmd_arg_text()
-            conversationMessage = self.messages.getByConversationMessageId(peer_id=self.obj["message"]["peer_id"], conversation_message_ids=self.obj["message"]["conversation_message_id"], extended=1)  # Получаем всю инфу по сообщению
+            conversationMessage = self.messages.getByConversationMessageId(peer_id=self.obj["message"]["peer_id"],
+                                                                           conversation_message_ids=self.obj["message"][
+                                                                               "conversation_message_id"],
+                                                                           extended=1)  # Получаем всю инфу по сообщению
             if conversationMessage["response"]["count"] != 0:
                 self.__event_cmd(conversationMessage)
 
     def __set_pervious_attr(self, update):
         self.obj = update["object"]
         self.event = update["type"]
-        self.peer_id = self.obj["message"]["peer_id"] if (("message" in self.obj) and ("peer_id" in self.obj["message"])) else self.log_chat if self.log_chat else None
+        self.peer_id = self.obj["message"]["peer_id"] if (("message" in self.obj) and (
+                    "peer_id" in self.obj["message"])) else self.log_chat if self.log_chat else None
 
     def __run_update(self, update):
         self.__set_pervious_attr(update)

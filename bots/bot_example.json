@@ -1,7 +1,7 @@
 {
-	"bot_lib": "Vk",
+	"bot_lib": "vk",
 	"enable": false,
-	"vk":{
+	"cfg":{
 		"token": "your_token",
 		"tokens": ["your_page_token1", "your_page_token2", "your_page_token3"],
 		"names": ["бот","тоб"],

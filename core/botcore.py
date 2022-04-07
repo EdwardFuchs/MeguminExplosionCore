@@ -1,7 +1,8 @@
 import sys
 from typing import List, Any
 
-class Bot:
+
+class BotCore:
     def __init__(self, name):
         self._name = name
         self.cmds = {}  # список команд с привязкой
@@ -10,6 +11,7 @@ class Bot:
 
     def _add_plugin(self, path):
         path_to_import = self.__reformat_path(path)
+        print(path_to_import)
         try:
             if path_to_import not in sys.modules:
                 import_cmd = __import__(path_to_import, fromlist=["cmd", "event"])
@@ -117,7 +119,8 @@ class Bot:
                     del func
         return add_event, update_event, deleted_event
 
-    def __reload_plugins(self, path_to_import: str, cmd: dict = None, event: dict = None):  # TODO удалить если пустой cmd или event (если до этого был не пустым)
+    def __reload_plugins(self, path_to_import: str, cmd: dict = None,
+                         event: dict = None):  # TODO удалить если пустой cmd или event (если до этого был не пустым)
         return self.__reload_cmd(path_to_import, cmd) + self.__reload_event(path_to_import, event)
         # raise ValueError("cmd или event должны быть заданы")
 

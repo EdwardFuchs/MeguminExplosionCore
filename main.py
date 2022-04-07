@@ -1,8 +1,8 @@
 from os import listdir
 from json import loads
-from threading import Thread
 
-from core.cores import *
+# from core.cores import *
+from importlib import import_module
 from core.updater import UpdaterHandler
 from watchdog.observers import Observer
 # PIP_TARGET=/path/to/pip/dir - переменная среды
@@ -16,11 +16,10 @@ def get_bots():
             bot = loads(file.read())
         if not bot["enable"]:
             continue
-        mybot = {}
         try:
-            exec(fr"mybot = {bot['bot_lib']}('{bot_name}', {bot[bot['bot_lib']]})", globals(), mybot)  # TODO Поискать более лучший способ
+            mybot = import_module(f"..{bot['bot_lib']}", "core.cores.").Bot(bot_name, bot["cfg"])
             bots[bot_name] = {}
-            bots[bot_name]["bot"] = mybot["mybot"]  # Thread(target=mybot["mybot"].run, daemon=False, name=bot_name)
+            bots[bot_name]["bot"] = mybot
             bots[bot_name]["plugins_path"] = bot["plugins_path"]
             bots[bot_name]["time_to_check_update"] = bot["time_to_check_update"]
         except Exception as e:
