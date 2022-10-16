@@ -1,3 +1,5 @@
+from re import fullmatch
+
 from core.botcore import BotCore
 from requests import post, get
 from random import randint
@@ -8,7 +10,7 @@ from threading import Thread
 from requests.exceptions import ConnectionError
 
 # Database
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 from sqlalchemy import create_engine
 from core.models.models import Base as MainBase
 from core.models.vk import Base as VkBase
@@ -206,6 +208,21 @@ class Bot(BotCore):
 
     def __run_cmd(self):
         try:
+            module_name = self.cmds[self.cmd].__module__.split('.')[-1]
+            func_name = self.cmds[self.cmd].__name__
+            pattern = rf"-?(:?\*|{module_name})\.(:?\*|{func_name})"
+            privileges_group: Query = self.db.query(PrivilegesGroups).filter_by(group=self.user.group)
+            not_allow_list: list = privileges_group.filter(PrivilegesGroups.allow.like('-%')).all()
+            not_allow_list: tuple = tuple(map(lambda x: x.allow, not_allow_list))
+            if next(filter(lambda x: fullmatch(pattern, x), not_allow_list), None):
+                self.send(f"Нельзя использовать комманду: {self.cmd}")
+                return
+            allow_list: list = privileges_group.filter(PrivilegesGroups.allow.not_in(not_allow_list)).all()
+            allow_list: tuple = tuple(map(lambda x: x.allow, allow_list))
+            if next(filter(lambda x: fullmatch(pattern, x), allow_list), None) is None:
+                self.send(f"Нельзя использовать комманду: {self.cmd}")
+                return
+            # bot.send('Can use')
             self.cmds[self.cmd](self)  # вызов команды
         except Exception as error:
             self.send_error(error, f"команды {self.cmd}")
