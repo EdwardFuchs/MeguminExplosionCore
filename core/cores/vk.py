@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 from core.models.models import Base as MainBase
 from core.models.vk import Base as VkBase
-from core.models.models import User, Privileges
+from core.models.models import User, PrivilegesGroups, PrivilegesUsers
 from core.models.vk import VkUser
 
 # print("import")
@@ -223,13 +223,15 @@ class Bot(BotCore):
 
         # Check Or Get User
         with Session(self.engine) as session:
+            self.db = session
             self.vk_user = session.query(VkUser).filter_by(vk_id=self.from_id).first()
             if not self.vk_user:
-                user = User(id=None)
-                session.add(user)
+                self.user = User()
+                session.add(self.user)
                 session.commit()
-            self.vk_user: VkUser = self.get_or_create(session, VkUser, vk_id=self.from_id)
-            self.user: User = self.get_or_create(session, User, id=self.vk_user.user_id)
+            else:
+                self.user: User = self.get_or_create(session, User, id=self.vk_user.user_id)
+            self.vk_user: VkUser = self.get_or_create(session, VkUser, vk_id=self.from_id, user_id=self.user.id)
             session.add(self.vk_user)
             session.commit()
             args = self.obj["message"]["text"].lower().split()

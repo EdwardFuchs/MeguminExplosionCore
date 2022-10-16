@@ -13,22 +13,45 @@ class User(Base):
     __tablename__ = 'User'
 
     id = Column(Integer, autoincrement=True, primary_key=True)
+    group = Column(String, default="User", nullable=True)
 
 
-class Privileges(Base):
-    __tablename__ = 'Privilege'
+class PrivilegesGroups(Base):
+    __tablename__ = 'PrivilegeGroup'
 
-    user_id = Column(Integer, ForeignKey(User.id), nullable=False)
+    group = Column(String, ForeignKey(User.group), nullable=False)
     allow = Column(String, nullable=False)
 
     __table_args__ = (
-        PrimaryKeyConstraint(user_id, allow),
+        PrimaryKeyConstraint(group, allow),
+        {},
+    )
+
+    def __init__(self, group: str, allow: str):
+        self.group = group
+        self.allow = allow
+        if fullmatch(r'^-?\w+\.\w+$', allow):
+            print('good')
+        # TODO check allow by '^\w+.\w+$' and has path/paths
+
+    def __repr__(self):
+        return f"Group: {self.group} - {self.allow}"
+
+
+class PrivilegesUsers(Base):
+    __tablename__ = 'PrivilegeUser'
+
+    user = Column(Integer, ForeignKey(User.id), nullable=False)
+    allow = Column(String, nullable=False)
+
+    __table_args__ = (
+        PrimaryKeyConstraint(user, allow),
         {},
     )
 
     def __init__(self, user_id: int, allow: str):
         self.user_id = user_id
         self.allow = allow
-        if fullmatch(r'^\w+\.\w+$', allow):
+        if fullmatch(r'^-?\w+\.\w+$', allow):
             print('good')
         # TODO check allow by '^\w+.\w+$' and has path/paths
