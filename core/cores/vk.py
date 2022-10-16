@@ -7,6 +7,14 @@ from os import getpid
 from threading import Thread
 from requests.exceptions import ConnectionError
 
+# Database
+from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from core.models.models import Base as MainBase
+from core.models.vk import Base as VkBase
+from core.models.models import User, Privileges
+from core.models.vk import VkUser
+
 # print("import")
 api_url = "https://api.vk.com/method/"  # url для доступа к вк апи
 headers = {
@@ -43,6 +51,9 @@ class Bot(BotCore):
         self.ts = None  # номер последнего события, начиная с которого нужно получать данные
         self.wait = config[
             "vk_wait"]  # время ожидания (так как некоторые прокси-серверы обрывают соединение после 30 секунд, мы рекомендуем указывать wait=25). Максимальное значение — 90.
+        # self.engine = create_engine("sqlite:///test.db", echo=True)  # "sqlite:///:memory:"
+        VkBase.metadata.create_all(self.engine, checkfirst=True)
+        # создание основных таблиц
         # print(f"Инициализация бота {name} закончена")
 
     def __getattr__(self, method_name):
@@ -130,7 +141,7 @@ class Bot(BotCore):
         self.__bot_started()
         while True:
             fail, response = self.__get_response()
-            if fail == 0:  # если нет ошибок
+            if fail == 0 and response is not None:  # если нет ошибок
                 updates = response['updates']  # получение всех обновлений
                 for update in updates:  # получение каждого обновления за данный периуд
                     th_update = Thread(target=self.__run_update(update), daemon=False,
@@ -184,7 +195,7 @@ class Bot(BotCore):
         self.name = f'{conversationMessage["response"]["profiles"][0]["first_name"]} {conversationMessage["response"]["profiles"][0]["last_name"]}' if "profiles" in \
                                                                                                                                                        conversationMessage[
                                                                                                                                                            "response"] else \
-        conversationMessage["response"]["groups"][0]["name"]
+            conversationMessage["response"]["groups"][0]["name"]
 
     def __send_log(self, args):
         if (args and args[0] in self.names) or self.peer_id < 2000000000 or self.cmd:
@@ -209,15 +220,29 @@ class Bot(BotCore):
 
     def __event_cmd(self, conversationMessage):
         self.__set_params(conversationMessage)
-        args = self.obj["message"]["text"].lower().split()
-        self.__send_log(args)
-        if self.cmd:
-            self.__run_cmd()
-        elif (args[0] in self.names) or (
-                self.peer_id == self.from_id):  # если это не команда и обращались к боту, то вызвать cmd_not_found
-            self.__run_cmd_not_found()
-        else:
-            pass  # Если это просто сообщение
+
+        # Check Or Get User
+        with Session(self.engine) as session:
+            self.vk_user = session.query(VkUser).filter_by(vk_id=self.from_id).first()
+            if not self.vk_user:
+                user = User(id=None)
+                session.add(user)
+                session.commit()
+            self.vk_user: VkUser = self.get_or_create(session, VkUser, vk_id=self.from_id)
+            self.user: User = self.get_or_create(session, User, id=self.vk_user.user_id)
+            session.add(self.vk_user)
+            session.commit()
+            args = self.obj["message"]["text"].lower().split()
+            self.__send_log(args)
+            if self.cmd:
+                self.vk_user.message_count += 1
+                session.commit()
+                self.__run_cmd()
+            elif (args[0] in self.names) or (
+                    self.peer_id == self.from_id):  # если это не команда и обращались к боту, то вызвать cmd_not_found
+                self.__run_cmd_not_found()
+            else:
+                pass  # Если это просто сообщение
 
     def __new_message(self):
         if self.event == "message_new" and self.obj["message"]["out"] == 0 and self.obj["message"]["from_id"] > 0 and \
@@ -235,7 +260,7 @@ class Bot(BotCore):
         self.obj = update["object"]
         self.event = update["type"]
         self.peer_id = self.obj["message"]["peer_id"] if (("message" in self.obj) and (
-                    "peer_id" in self.obj["message"])) else self.log_chat if self.log_chat else None
+                "peer_id" in self.obj["message"])) else self.log_chat if self.log_chat else None
 
     def __run_update(self, update):
         self.__set_pervious_attr(update)
@@ -244,6 +269,16 @@ class Bot(BotCore):
 
     def cmd_not_found(self):
         self.send("Команда не найдена")
+
+    @staticmethod
+    def get_or_create(session, model, **kwargs):
+        instance = session.query(model).filter_by(**kwargs).first()
+        if instance:
+            return instance
+        instance = model(**kwargs)
+        session.add(instance)
+        session.commit()
+        return instance
 
 
 class VkAPI:

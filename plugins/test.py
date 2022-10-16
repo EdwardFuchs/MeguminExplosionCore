@@ -7,6 +7,7 @@ def test(bot):
         bot.send("Все идёт согласно плану", attachment="photo-169151978_457729185")
     else:
         bot.send("Тест проведён удачно.")
+    bot.send(bot.vk_user)
 
 
 def anton(bot):

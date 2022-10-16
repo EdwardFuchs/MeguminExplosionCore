@@ -148,6 +148,7 @@ def use_grapgic(bot, city, country, icon, temp, temp_min, temp_max, utc):
         bot.send(f"[{bot._name}]: Нет нужного эвента для загрузки фото")
     file.close()
 
+
 def weather(bot):
     city = get_city(bot)
     city, country, icon, temp, temp_min, temp_max, utc, weather_desc, wind_speed, clouds, humidity, time_update = get_weather(city)
@@ -159,3 +160,8 @@ def weather(bot):
 
 
 cmd = {weather: "погода"}
+
+
+permission = {
+
+}

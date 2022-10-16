@@ -49,6 +49,7 @@ class UpdaterHandler(FileSystemEventHandler):
                     print(f'[{self.bot._name}]: изменен файл "{src}"')
             time.sleep(time_to_check_update / 4)
 
+    # TODO уменьшить хранение строк  путем доюавления окончаний
     @staticmethod
     def __gen_text_cmd(*args):
         res = []

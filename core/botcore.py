@@ -1,5 +1,8 @@
 import sys
-from typing import List, Any
+
+# DATABASE
+from sqlalchemy import create_engine
+from core.models.models import Base as MainBase
 
 
 class BotCore:
@@ -8,10 +11,12 @@ class BotCore:
         self.cmds = {}  # список команд с привязкой
         self.events = {}  # список эвенов с привязкой
         self.imported = {}  # список всех заимпортированных файлов и храняшихся в нем эвентов и комманд
+        self.engine = create_engine("sqlite:///test.db")  # TODO "sqlite:///:memory:"
+        MainBase.metadata.create_all(self.engine, checkfirst=True)  # создание основных таблиц
 
     def _add_plugin(self, path):
         path_to_import = self.__reformat_path(path)
-        print(path_to_import)
+        # print(path_to_import)
         try:
             if path_to_import not in sys.modules:
                 import_cmd = __import__(path_to_import, fromlist=["cmd", "event"])
@@ -52,7 +57,7 @@ class BotCore:
         print(f"[ERROR] [{self._name}]: {msg}")
 
     @staticmethod
-    def __reformat_path(path):
+    def __reformat_path(path: str):
         return path.replace("/", ".").replace("\\", ".").replace(".py", "")
 
     @staticmethod
@@ -72,7 +77,7 @@ class BotCore:
                 return True
         return False
 
-    def __reload_cmd(self, path_to_import, cmd):
+    def __reload_cmd(self, path_to_import: str, cmd: dict):
         add_cmd = []
         update_cmd = []
         deleted_cmd = []
